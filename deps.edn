@@ -12,6 +12,9 @@
   :watch
   {:exec-fn monkey.test/watch}
 
+  :junit
+  {:exec-fn monkey.test/junit}
+
   :jar
   {:extra-deps {com.monkeyprojects/build {:mvn/version "0.2.0"}}
    :exec-fn monkey.build/jar

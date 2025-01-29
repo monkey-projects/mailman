@@ -28,4 +28,6 @@
           (is (= evt (deref recv 1000 :timeout)))))
 
       (testing "can unregister"
-        (is (true? (c/unregister-listener l)))))))
+        (is (true? (c/unregister-listener l))))))
+
+  (testing "re-posts events in listener return values"))
