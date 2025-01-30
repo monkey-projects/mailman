@@ -33,16 +33,14 @@
    :enter (fn [ctx]
             (assoc-in ctx [:event :ts] (System/currentTimeMillis)))})
 
-(defn with-interceptors [handler]
+(def interceptors
   [add-time
    logger
-   (i/sanitize-result)
-   (i/handler-interceptor handler)])
+   (i/sanitize-result)])
 
 (def routes
-  {::init [(-> initializer
-               (with-interceptors)
-               (i/interceptor-handler))]})
+  {::init [{:handler initializer
+            :interceptors interceptors}]})
 
 (def router (c/router routes))
 
