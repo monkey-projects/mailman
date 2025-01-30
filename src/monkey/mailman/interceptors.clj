@@ -3,7 +3,8 @@
    under the hood.  Most functions are really just wrappers around Pedestal
    functions."
   (:require [io.pedestal.interceptor :as i]
-            [io.pedestal.interceptor.chain :as ic]))
+            [io.pedestal.interceptor.chain :as ic]
+            [monkey.mailman.spec :as s]))
 
 (def empty-context {})
 
@@ -39,6 +40,20 @@
             (assoc ctx
                    :result (handler (:event ctx))
                    :handler handler))})
+
+(defn- sanitize [x valid?]
+  (cond
+    (sequential? x) (->> (mapcat #(sanitize % valid?) x)
+                         (remove nil?))
+    (valid? x) [x]
+    :else nil))
+
+(defn sanitize-result [& {:keys [event?]
+                          :or {event? s/event?}}]
+  "Cleans up result so it only contains valid events"
+  {:name ::sanitize-result
+   :leave (fn [ctx]
+            (update ctx :result sanitize event?))})
 
 (defn interceptor-handler
   "Creates an event handler fn that uses the given interceptors as the interceptor

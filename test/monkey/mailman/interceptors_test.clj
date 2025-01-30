@@ -24,3 +24,35 @@
       (let [r (h {:type ::test-evt})]
         (is (= ::handled (:result r)))
         (is (true? (::called? r)))))))
+
+(deftest sanitize-result
+  (let [i (sut/sanitize-result)
+        f (:leave i)
+        evt {:type ::valid}]
+    
+    (testing "provides `leave` handler"
+      (is (fn? f)))
+    
+    (testing "wraps events in vector"
+      (is (= [evt] (-> {:result evt}
+                       (f)
+                       :result))))
+
+    (testing "leaves collections as-is"
+      (is (= [evt] (-> {:result [evt]}
+                       (f)
+                       :result))))
+
+    (testing "removes non-events"
+      (is (empty? (-> {:result [:invalid]}
+                      (f)
+                      :result)))
+
+      (is (empty? (-> {:result :invalid}
+                      (f)
+                      :result)))
+
+      (is (= [evt] (-> {:result [:invalid evt]}
+                       (f)
+                       :result))))))
+

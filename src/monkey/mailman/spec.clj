@@ -21,3 +21,6 @@
 (def events?
   "Checks if the argument is a valid list of events"
   (partial s/valid? ::events))
+
+(def result?
+  (partial s/valid? ::router-result))
