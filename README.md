@@ -13,8 +13,8 @@ as argument, and return a sequence of resulting events that should be posted bac
 the broker, or `nil` if no events should be posted.
 
 Mailman provides additional helper functions to create routers, add interceptors
-(using [Pedestal](https://pedestal.io)) or set up custom matches and invokers.  See
-more below on what these are.
+(using [Pedestal](http://pedestal.io)) or set up custom matches and invokers.  See
+below for more on what these are.
 
 ## Usage
 
@@ -53,6 +53,107 @@ The event handlers are 1-arity functions that take the event as argument.  The r
 value is added to the resulting structure, along with the input event and the handler
 function itself.  It's up to the event broker implementation to process this result,
 but the intention is that when the result is an event, it is re-dispatched.
+
+## Handlers
+
+A handler is a function that takes an event, and returns a result structure.  This
+structure consists of the input event, the handler and a result.  To make setting
+up handlers easier, a protocol exists called `ToHandler`.  It is responsible for
+converting its argument in a handler record.  This is then converted into a handler
+function by the router.
+
+Implementations exist that convert a simple function or a map into a handler.
+The function is wrapped and its return value converted to the aforementioned result
+structure.
+
+### Map Handlers
+
+Map handlers are useful if you want to provide some more detail to the handler.
+At the very least it requires a `:handler` key, that provides the handler function,
+which takes an event, and returns some result (probably new events to dispatch).
+
+But you can also add interceptors to them.
+
+### Interceptors
+
+One of the most useful things in standard HTTP libraries are the interceptors.
+They provide a more flexible way of converting input and output for handlers than
+the standard Ring-style function wrapping.  In *Mailman*, we opted to use the
+interceptors provided by [Pedestal](http://pedestal.io).  Some default interceptors
+have been provided in the `monkey.mailman.interceptors` namespace.
+
+The last interceptor is usually the one that actually invokes the handler function,
+and converts the result.  This is the `handler-interceptor`.  There is also a
+`sanitize-result` interceptor, that converts the handler return value into a
+sequence of events, and drops any non-event things.
+
+But you can also provide your own interceptors.  See the [Pedestal interceptor
+documentation](http://pedestal.io/pedestal/0.7/guides/what-is-an-interceptor.html)
+for details on how to do that.
+
+And in order to use all these as a regular handler, there is the `interceptor-handler`
+function, that wraps a handler so interceptors are execute correctly.  Note that this
+is all done for you by the router.
+
+So in order to create a router with interceptors, you could write something like this:
+```clojure
+(def routes
+  {:my/event-type {:handler my-handler
+                   :interceptors [log-events]}})
+
+(def router (mm/router routes {:interceptors [(mm/sanitize-result)]}))
+```
+
+As shown, you can also provide top-level interceptors in the options map to the router.
+These are combined with the route-specific interceptors.  The route-specific interceptors
+are appended to the global interceptors, so they have "priority" so to speak.
+
+## Customization
+
+The `router` function accepts an optional second argument, which is an options map
+that allows you to override some default behaviour of the router.  You can specify
+a custom `matcher`, and also an `invoker`.  See below for more.
+
+### Route Matchers
+
+Since Mailman is all about allowing freedom, but providing sensible defaults, the route
+matching is set up in a similar fashion.  It's actually a protocol (calls `RouteMatcher`)
+and by default it sets up the routes as a map, and matches by event `:type`.  Each map
+value can have multiple possible handlers.
+
+`RouteMatcher` provides two functions: `compile-routes` and `find-handlers`.  The former
+takes the routes as provided to the `router` function, and converts them into a format
+more suitable to the matcher.  The latter looks up handlers for an incoming event.
+
+Functions also implement the protocol, and by default they leave the routes untouched
+(so `compile-routes` is a dummuy function) and just invokes the function to find
+handlers.
+
+And you can also specify your own matcher by implementing the protocol.  Override the
+default matcher by specifying the `:matcher` key in the options map when calling
+`router`.
+
+```clojure
+(defrecord CustomMatcher []
+  mm/RouteMatcher
+  (compile-routes [this routes]
+    ;; Prepare routes for the finder
+    ...)
+
+  (find-handlers [this routes evt]
+    ;; Actually find handlers in the compiled routes
+    ...))
+
+(mm/router routes {:matcher (->CustomMatcher)})
+```
+
+### Invokers
+
+By default, handler invocation is done by just invoking each handler in sequence.
+But you can specify your own invoker, for instance to do async event handling so
+one handler cannot block another one.  An invoker is a 2-arity function that takes
+the handlers, as returned by `find-handlers`, and the event to handle.  It is
+supposed to return a list of results, which is then passed back to the broker.
 
 ## Brokers
 

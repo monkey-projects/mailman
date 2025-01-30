@@ -5,6 +5,37 @@
              [core :as sut]
              [spec :as spec]]))
 
+(deftest sync-invoker
+  (testing "invokes all handlers sequentially"
+    (is (= [::first ::second] (sut/sync-invoker [(constantly ::first)
+                                                 (constantly ::second)]
+                                                ::test-event)))))
+
+(deftest ->handler
+  (testing "converts function to handler"
+    (let [h (sut/->handler (fn [evt]
+                             {:handled evt}))]
+      (is (fn? (:handler h)))))
+
+  (testing "converts map to handler"
+    (let [h (sut/->handler {:handler (constantly ::handled)})]
+      (is (fn? (:handler h))))))
+
+(deftest handler->fn
+  (let [test-interceptor {:name ::test
+                          :enter #(assoc % :intercepted? true)}
+        h (sut/handler->fn
+           (sut/->handler {:handler (constantly ::handled)
+                           :interceptors [test-interceptor]}))]
+    (testing "returns fn"
+      (is (fn? h)))
+
+    (testing "applies interceptors"
+      (is (= {:result ::handled
+              :intercepted? true}
+             (-> (h ::test-event)
+                 (select-keys [:result :intercepted?])))))))
+
 (deftest router
   (let [handled (atom [])
         handler (fn [evt]
@@ -36,47 +67,16 @@
   (testing "can override invocation"
     (let [r (sut/router {::test-type [(constantly ::result)]}
                         {:invoker (constantly ::overridden)})]
-      (is (= ::overridden (r {:type ::test-type}))))))
+      (is (= ::overridden (r {:type ::test-type})))))
 
-(deftest route-matcher
-  (testing "matches by event type keyword"
-    (let [routes [[::first ::test-handler]
-                  [::second ::other-handler]]]
-      (is (= [::other-handler] (sut/route-matcher routes {:type ::second})))
-      (is (empty? (sut/route-matcher routes {:type ::third})))))
-
-  (testing "matches maps by event type keyword"
-    (let [routes {::first ::test-handler
-                  ::second ::other-handler}]
-      (is (= [::other-handler] (sut/route-matcher routes {:type ::second})))
-      (is (empty? (sut/route-matcher routes {:type ::third}))))))
-
-(deftest sync-invoker
-  (testing "invokes all handlers sequentially"
-    (is (= [::first ::second] (sut/sync-invoker [(constantly ::first)
-                                                 (constantly ::second)]
-                                                ::test-event)))))
-
-(deftest ->handler
-  (testing "converts function to handler"
-    (let [h (sut/->handler (fn [evt]
-                             {:handled evt}))]
-      (is (fn? h))
-      (is (= {:handled ::test-event} (-> (h ::test-event)
-                                         :result)))))
-
-  (testing "map"
-    (testing "converts to handler"
-      (let [h (sut/->handler {:handler (constantly ::handled)})]
-        (is (= ::handled (-> (h ::test-event)
-                             :result)))))
-
-    (testing "applies interceptors"
-      (let [test-interceptor {:name ::test
-                              :enter #(assoc % :intercepted? true)}
-            h (sut/->handler {:handler (constantly ::handled)
-                              :interceptors [test-interceptor]})]
-        (is (= {:result ::handled
-                :intercepted? true}
-               (-> (h ::test-event)
-                   (select-keys [:result :intercepted?]))))))))
+  (testing "applies global interceptors"
+    (let [test-interceptor {:name ::test
+                            :enter (fn [ctx]
+                                     (assoc ctx :intercepted? true))}
+          r (sut/router {::test-type [(constantly ::result)]}
+                        {:interceptors [test-interceptor]})]
+      (is (= {:result ::result
+              :intercepted? true}
+             (-> (r {:type ::test-type})
+                 (first)
+                 (select-keys [:result :intercepted?])))))))

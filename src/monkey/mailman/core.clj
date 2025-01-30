@@ -35,62 +35,73 @@
   "Converts the object into an event handler fn."
   (->handler [this] "Converts this to a handler"))
 
+(defrecord Handler [handler interceptors])
+
 (extend-protocol ToHandler
   clojure.lang.Fn
   (->handler [f]
-    (fn [evt]
-      {:handler f
-       :event evt
-       :result (f evt)}))
+    (->Handler f nil))
   
   clojure.lang.PersistentArrayMap
   (->handler [m]
-    (-> (:interceptors m)
-        (concat [(i/handler-interceptor (:handler m))])
-        (i/interceptor-handler))))
+    (map->Handler m)))
+
+(defn handler->fn
+  "Converts the handler into an invokable function that applies interceptors"
+  [handler]
+  (-> (:interceptors handler)
+      (concat [(i/handler-interceptor (:handler handler))])
+      (i/interceptor-handler)))
 
 (defprotocol RouteMatcher
-  (matches? [this evt]
+  "Used by the router to find handlers for an incoming event."
+  (compile-routes [this routes]
+    "Compiles routes in a format that is more suitable for the matcher")
+  (find-handlers [this routes evt]
     "Checks if this matches given event"))
 
-(defn type-matcher
-  "Handler matcher that assumes routes is a map and that matches by event type"
-  [routes evt]
-  (get routes (:type evt)))
-
-(extend-type clojure.lang.Keyword
+(defrecord TypeMatcher []
   RouteMatcher
-  (matches? [k evt]
-    (= k (:type evt))))
+  (compile-routes [_ routes]
+    (into {} routes))
+  
+  (find-handlers [_ routes evt]
+    (get routes (:type evt))))
 
-(defn route-matcher
-  "Handler matcher that assumes the first item in each entry is a `RouteMatcher` and
-   returns all handlers that match according to the protocol.  This allows for more
-   flexibility compared to the default `type-matcher`.  Useful if for example you want
-   to add a handler that can process multiple types of events without having to specify
-   it at multiple places."
-  [routes evt]
-  (->> routes
-       (filter (fn [[k h]]
-                 (matches? k evt)))
-       (map second)))
+(extend-type clojure.lang.Fn
+  RouteMatcher
+  (compile-routes [_ routes]
+    routes)
+
+  (find-handlers [this routes evt]
+    (this routes evt)))
+
+(def type-matcher
+  "Handler matcher that assumes routes is a map and that matches by event type"
+  (->TypeMatcher))
 
 (defn sync-invoker
   "Handler invoker that invokes each of the handlers in sequence."
   [handlers evt]
-  (mapv (fn [h] (h evt))
-        handlers))
+  (mapv (fn [h] (h evt)) handlers))
 
-(defn compile-routes
-  "Prepares routes so they can be used by the router by converting the handler values
-   to actual handlers."
-  [routes]
+(defn- convert-handlers [routes]
   (->> routes
        (reduce (fn [r [k v]]
                  (conj r [k (map ->handler v)]))
                [])
-       ;; TODO This actually depends on the matcher
-       (into {})))
+       (doall)))
+
+(defn- add-global-interceptors [interceptors routes]
+  (letfn [(convert [h]
+            (cond-> h
+              (not-empty interceptors)
+              (update :interceptors (comp vec (partial concat interceptors)))
+              true
+              (handler->fn)))]
+    (mapv (fn [[k handlers]]
+            [k (map convert handlers)])
+          routes)))
 
 (defn router
   "Creates an event router function.  It can be registered as a listener and it will
@@ -100,12 +111,15 @@
 
    An extra options map can be passed in to override default behaviour:
      - `:matcher`: function that determines the handlers to invoke for an event, defaults to `type-matcher`.
-     - `:invoker`: function that performs handler invocation.  By default this is the `sync-invoker`."
-  [routes & [{:keys [matcher invoker]
+     - `:invoker`: function that performs handler invocation.  By default this is the `sync-invoker`.
+     - `:interceptors`: custom interceptors, prepended to the route-specific interceptors."
+  [routes & [{:keys [matcher invoker interceptors]
               :or {matcher type-matcher
                    invoker sync-invoker}}]]
-  ;; TODO If the matchers is a 2-arity function, we could invoke it first to get compiled routes
-  (let [compiled (compile-routes routes)]
+  (let [compiled (->> routes
+                      (convert-handlers)
+                      (add-global-interceptors interceptors)
+                      (compile-routes matcher))]
     (fn [evt]
-      (when-let [h (matcher compiled evt)]
+      (when-let [h (find-handlers matcher compiled evt)]
         (invoker h evt)))))
