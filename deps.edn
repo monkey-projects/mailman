@@ -24,6 +24,6 @@
   {:exec-fn monkey.build/jar+install}
 
   :publish
-  {:exec-fn monkey.build/deploy
+  {:exec-fn monkey.build/jar+deploy
    :exec-args {:lib com.monkeyprojects/mailman
                :version-env "LIB_VERSION"}}}}
