@@ -5,13 +5,13 @@
              [mem :as sut]]))
 
 (deftest memory-events
-  (testing "posted events can be pulled"
+  (testing "posted events can be polled"
     (let [e (sut/make-memory-events)
           evt {:type ::test-evt}]
       (is (= [evt] (c/post-events e [evt])))
       (is (= 1 (count (:queue e)))
           "event should be in the queue")
-      (is (= evt (c/pull-next e)))))
+      (is (= evt (c/poll-next e)))))
 
   (testing "listeners"
     (let [e (sut/make-memory-events)

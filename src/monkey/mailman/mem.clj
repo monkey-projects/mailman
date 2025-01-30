@@ -16,7 +16,7 @@
     (let [t (Thread. (fn []
                        ;; Runs a simple poll loop
                        (while (not-empty (:listeners @state))
-                         (doseq [evt (mc/pull-events e nil)]
+                         (doseq [evt (mc/poll-events e nil)]
                            (doseq [l (:listeners @state)]
                              (try
                                (mc/invoke-listener l evt)
@@ -37,7 +37,7 @@
     events)
 
   mc/EventReceiver
-  (pull-events [this n]
+  (poll-events [this n]
     (loop [res []]
       (if-let [evt (.poll queue)]
         (let [v (conj res evt)]

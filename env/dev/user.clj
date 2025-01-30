@@ -46,6 +46,8 @@
 
 (def router (c/router routes))
 
+;;; Starting and stopping the broker
+
 (declare stop!)
 
 (defn start! []
