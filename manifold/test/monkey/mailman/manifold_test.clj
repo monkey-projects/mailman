@@ -21,4 +21,9 @@
       
       (testing "passes received events to listener"
         (is (some? (mc/post-events broker [evt])))
-        (is (= evt (deref (ms/take! recv) 1000 :timeout)))))))
+        (is (= evt (deref (ms/take! recv) 1000 :timeout))))
+
+      (testing "can unregister listener"
+        (is (true? (mc/unregister-listener l)))
+        (is (some? (mc/post-events broker [evt])))
+        (is (= :timeout (deref (ms/take! recv) 100 :timeout)))))))

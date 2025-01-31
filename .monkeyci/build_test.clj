@@ -8,7 +8,8 @@
   (let [ctx mt/test-ctx
         jobs ((sut/build-lib "core") ctx)]
     (testing "creates test job"
-      (is (= 1 (count jobs))))
+      (is (= 1 (count jobs)))
+      (is (= "core-test" (m/job-id (first jobs)))))
 
     (testing "uses dir as working dir"
       (is (= "core" (m/work-dir (first jobs))))))

@@ -14,14 +14,17 @@
   ;; Only take if immediately available
   @(ms/try-take! stream 0))
 
-(defrecord Listener [id handler]
+(defrecord Listener [id handler listeners]
   c/Listener
   (invoke-listener [this evt]
     (handler evt))
 
   (unregister-listener [this]
-    ;; TODO
-    ))
+    (if (contains? @listeners id)
+      (do
+        (swap! listeners dissoc id)
+        true)
+      false)))
 
 (defn start-broker
   "Starts receiving events from the broker stream and dispatching them to the listeners."
@@ -52,7 +55,7 @@
          (take-while some?)))
 
   (add-listener [this l]
-    (let [w (->Listener (random-uuid) l)]
+    (let [w (->Listener (random-uuid) l listeners)]
       (when (empty? @listeners)
         (start-broker this))
       (swap! listeners assoc (:id w) w)
