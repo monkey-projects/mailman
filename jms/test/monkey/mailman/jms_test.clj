@@ -11,6 +11,7 @@
 (def broker-port 61617)
 (def url (format "amqp://localhost:%d" broker-port))
 (def topic "topic://test.local")
+(def queue "queue://test.local.queue")
 
 (def transport-config
   (TransportConfiguration.
@@ -58,7 +59,7 @@
 
 (deftest jms-broker
   (let [broker (sut/jms-broker {:url url
-                                :destination topic})]
+                                :destination queue})]
     
     (testing "can post and poll events"
       (let [evt {:type ::test-event}]
