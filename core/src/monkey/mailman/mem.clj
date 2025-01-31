@@ -40,7 +40,7 @@
        (filter (partial = l))
        (empty?)))
 
-(defrecord MemoryEvents [queue state]
+(defrecord MemoryBroker [queue state]
   mc/EventPoster
   (post-events [this events]
     (.addAll queue events)
@@ -62,5 +62,7 @@
       (maybe-start-thread! this state)
       l)))
 
-(defn make-memory-events []
-  (->MemoryEvents (ConcurrentLinkedQueue.) (atom {})))
+(defn make-memory-broker []
+  (->MemoryBroker (ConcurrentLinkedQueue.) (atom {})))
+
+(def ^:deprecated make-memory-events make-memory-broker)
