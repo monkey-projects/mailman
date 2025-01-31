@@ -1,14 +1,19 @@
 {:deps {com.monkeyprojects/mailman-core {:mvn/version "0.1.0-SNAPSHOT"}
-        manifold/manifold {:mvn/version "0.4.3"}}
+        com.monkeyprojects/monkey-jms {:mvn/version "0.2.1-SNAPSHOT"}}
 
  :aliases
  {:dev
-  {:extra-paths ["env/dev"]
-   :override-deps {com.monkeyprojects/mailman-core {:local/root "../core"}}}
+  {:extra-paths ["dev-resources" "env/dev"]
+   :override-deps {ch.qos.logback/logback-classic {:mvn/version "1.5.16"}
+                   com.monkeyprojects/mailman-core {:local/root "../core"}}}
 
   :test
   ;; clj -X:test
-  {:extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1-SNAPSHOT"}}
+  {:extra-paths ["test"]
+   :extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1-SNAPSHOT"}
+                ;; For embedded broker in tests
+                org.apache.activemq/artemis-server {:mvn/version "2.39.0"}
+                org.apache.activemq/artemis-amqp-protocol {:mvn/version "2.39.0"}}
    :exec-fn monkey.test/all}
 
   :junit
@@ -19,7 +24,7 @@
   ;; clj -X:jar
   {:extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1-SNAPSHOT"}}
    :exec-fn monkey.build/jar
-   :exec-args {:jar "target/mailman-manifold.jar"}}
+   :exec-args {:jar "target/mailman-jms.jar"}}
 
   :install
   ;; clj -X:jar:install
@@ -28,7 +33,7 @@
   :publish
   ;; clj -X:jar:publish
   {:exec-fn monkey.build/jar+deploy
-   :exec-args {:lib com.monkeyprojects/mailman-manifold
+   :exec-args {:lib com.monkeyprojects/mailman-jms
                :pom-data [[:licenses
                            [:license
                             [:name "GPL v3"]
