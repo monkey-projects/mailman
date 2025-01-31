@@ -46,7 +46,7 @@
 
     (testing "dispatches event according to type"
       (let [evt {:type ::test-type}]
-        (is (s/valid? ::spec/router-result (first (r evt)))
+        (is (spec/results? (r evt))
             "returns router result structure")
         (is (= [evt] @handled))))
 

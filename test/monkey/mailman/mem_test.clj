@@ -30,4 +30,17 @@
       (testing "can unregister"
         (is (true? (c/unregister-listener l))))))
 
-  (testing "re-posts events in listener return values"))
+  (testing "re-posts events in listener return values"
+    (let [e (sut/make-memory-events)
+          recv (promise)
+          handle-first (fn [evt]
+                         {:type ::second
+                          :orig evt})
+          handle-second (fn [evt]
+                          (deliver recv evt)
+                          nil)
+          router (c/router {::first [handle-first]
+                            ::second [handle-second]})
+          l (c/add-listener e router)]
+      (is (some? (c/post-events e [{:type ::first}])))
+      (is (= ::second (-> (deref recv 1000 :timeout) :type))))))

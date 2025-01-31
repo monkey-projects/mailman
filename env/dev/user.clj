@@ -38,11 +38,19 @@
    logger
    (i/sanitize-result)])
 
-(def routes
-  {::init [{:handler initializer
-            :interceptors interceptors}]})
+(defn- middle [evt]
+  (log/info "Middle of process")
+  (event ::end {:message "The end is near"}))
 
-(def router (c/router routes))
+(defn- end [evt]
+  (log/info "End of process"))
+
+(def routes
+  {::init [{:handler initializer}]
+   ::start [{:handler middle}]
+   ::end [{:handler end}]})
+
+(def router (c/router routes {:interceptors interceptors}))
 
 ;;; Starting and stopping the broker
 
@@ -61,5 +69,6 @@
              nil))))
 
 (defn post! [evt]
-  (when @broker
-    (c/post-events @broker [evt])))
+  (if @broker
+    (c/post-events @broker [evt])
+    (log/warn "Broker is not running!")))

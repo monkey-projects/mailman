@@ -14,6 +14,9 @@
 (s/def ::router-result
   (s/keys :req-un [::event ::handler ::result]))
 
+(s/def ::router-results
+  (s/coll-of ::router-result))
+
 (def event?
   "Checks if the argument is a valid event"
   (partial s/valid? ::event))
@@ -24,3 +27,6 @@
 
 (def result?
   (partial s/valid? ::router-result))
+
+(def results?
+  (partial s/valid? ::router-results))
