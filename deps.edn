@@ -9,7 +9,8 @@
                 org.slf4j/slf4j-api {:mvn/version "2.0.16"}}}
 
   :test
-  {:extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1-SNAPSHOT"}}
+  {:extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1-SNAPSHOT"}
+                ch.qos.logback/logback-classic {:mvn/version "1.5.16"}}
    :exec-fn monkey.test/all}
 
   :watch
