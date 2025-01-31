@@ -1,10 +1,10 @@
-{:deps {com.monkeyprojects/mailman {:mvn/version "0.1.0-SNAPSHOT"}
+{:deps {com.monkeyprojects/mailman-core {:mvn/version "0.1.0-SNAPSHOT"}
         manifold/manifold {:mvn/version "0.4.3"}}
 
  :aliases
  {:dev
   {:extra-paths ["env/dev"]
-   :override-deps {com.monkeyprojects/mailman {:local/root "../core"}}}
+   :override-deps {com.monkeyprojects/mailman-core {:local/root "../core"}}}
 
   :test
   ;; clj -X:test
