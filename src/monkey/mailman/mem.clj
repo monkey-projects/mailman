@@ -1,8 +1,7 @@
 (ns monkey.mailman.mem
   "In-memory implementation of mailman protocols, primarily intended for development 
    and testing purposes."
-  (:require [clojure.tools.logging :as log]
-            [monkey.mailman.core :as mc])
+  (:require [monkey.mailman.core :as mc])
   (:import [java.util.concurrent ConcurrentLinkedQueue]))
 
 (defrecord Listener [handler unregister-fn]
@@ -19,7 +18,6 @@
                     (flatten)
                     (remove nil?))]
     (when-not (empty? events)
-      (log/debug "Posting" (count events) "result events:" events)
       (mc/post-events broker events))))
 
 (defn- maybe-start-thread! [e state]
