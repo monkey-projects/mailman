@@ -1,6 +1,8 @@
 (ns monkey.mailman.manifold-test
   (:require [clojure.test :refer [deftest testing is]]
-            [manifold.stream :as ms]
+            [manifold
+             [deferred :as md]
+             [stream :as ms]]
             [monkey.mailman
              [core :as mc]
              [manifold :as sut]]))
@@ -26,4 +28,19 @@
       (testing "can unregister listener"
         (is (true? (mc/unregister-listener l)))
         (is (some? (mc/post-events broker [evt])))
-        (is (= :timeout (deref (ms/take! recv) 100 :timeout)))))))
+        (is (= :timeout (deref (ms/take! recv) 100 :timeout))))
+
+      (testing "cannot add listener when broker has been stopped"
+        (is (nil? (sut/stop-broker broker)))
+        (is (thrown? Exception (mc/add-listener broker (constantly nil))))))))
+
+(deftest async-invoker
+  (testing "invokes each of the handlers async"
+    (let [handlers (->> (range)
+                        (map (fn [idx]
+                               #(md/future (str "handled by " idx ": " %))))
+                        (take 3))
+          res (sut/async-invoker handlers ::test-event)]
+      (is (md/deferred? res))
+      (is (= (count handlers) (count @res)))
+      (is (every? (partial re-matches #"handled by \d+: .*") @res)))))

@@ -30,6 +30,7 @@
   "Starts receiving events from the broker stream and dispatching them to the listeners."
   [broker]
   (ms/consume (fn [evt]
+                ;; TODO Error handling
                 (doseq [l (vals @(:listeners broker))]
                   (c/invoke-listener l evt)))
               (:stream broker)))
@@ -56,6 +57,11 @@
 
   (add-listener [this l]
     (let [w (->Listener (random-uuid) l listeners)]
+      ;; Start broker when first listener is registered
+      ;; Note that this won't have any effect if it has been stopped previously, since the
+      ;; stream will have been closed then.
+      (when (ms/closed? stream)
+        (throw (ex-info "Cannot add listener, broker has already been stopped")))
       (when (empty? @listeners)
         (start-broker this))
       (swap! listeners assoc (:id w) w)
@@ -65,3 +71,13 @@
                           :or {buf-size 10}}]
   ;; Do not auto-start, only do this when a listener is first registered
   (->ManifoldBroker (ms/stream buf-size) (atom {})))
+
+(defn async-invoker
+  "Routing invoker that assumes the handlers return a deferred value.  Invokes each
+   of them in parallel and returns a deferred that will hold the results, as per 
+   `manifold.deferred.zip`."
+  [handlers evt]
+  (->> handlers
+       (map (fn [h]
+              (h evt)))
+       (apply md/zip)))
