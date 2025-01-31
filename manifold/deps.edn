@@ -13,4 +13,21 @@
 
   :junit
   ;; clj -X:test:junit
-  {:exec-fn monkey.test/junit}}}
+  {:exec-fn monkey.test/junit}
+
+  :jar
+  {:extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1-SNAPSHOT"}}
+   :exec-fn monkey.build/jar
+   :exec-args {:jar "target/mailman-manifold.jar"}}
+
+  :install
+  {:exec-fn monkey.build/jar+install}
+
+  :publish
+  {:exec-fn monkey.build/jar+deploy
+   :exec-args {:lib com.monkeyprojects/mailman-manifold
+               :pom-data [[:licenses
+                           [:license
+                            [:name "GPL v3"]
+                            [:url "https://www.gnu.org/licenses/gpl-3.0.en.html#license-text"]]]]
+               :version [[:env "LIB_VERSION"] "0.1.0-SNAPSHOT"]}}}}
