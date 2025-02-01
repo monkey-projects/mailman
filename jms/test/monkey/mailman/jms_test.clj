@@ -64,4 +64,23 @@
     (testing "can post and poll events"
       (let [evt {:type ::test-event}]
         (is (= [evt] (mc/post-events broker [evt])))
-        (is (= [evt] (wait-until #(mc/poll-next broker))))))))
+        (is (= evt (wait-until #(mc/poll-next broker))))))
+
+    (testing "listener"
+      (let [evt {:type ::other-event}
+            recv (promise)
+            listener (mc/add-listener
+                      broker
+                      (fn [evt]
+                        (deliver recv evt)
+                        nil))]
+        (is (some? listener))
+
+        (testing "receives events"
+          (is (some? (mc/post-events broker [evt])))
+          (is (= evt (deref recv 1000 :timeout))))
+
+        (testing "can unregister"
+          (is (true? (mc/unregister-listener listener))))
+
+        (testing "re-posts resulting events")))))
