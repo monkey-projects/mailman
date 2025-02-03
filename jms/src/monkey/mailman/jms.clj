@@ -63,6 +63,7 @@
     (handler evt))
   
   (unregister-listener [this]
+    ;; TODO Stop consuming when the last listener for a consumer has been unregistered
     (some? (when (contains? (get-in @state [:listeners destination]) id)
              (swap! state update-in [:listeners destination] dissoc id)))))
 
@@ -91,6 +92,7 @@
   [state {:keys [context config] :as broker} {dest :destination :as listener}]
   (letfn [(make-consumer [dest]
             (log/debug "Creating consumer for" dest)
+            ;; TODO Allow for custom id for durable subscribers
             (-> (jms/make-consumer context dest (consumer-opts config))
                 (set-listener (partial dispatch-evt broker dest))))
           (maybe-create-consumer [state]
