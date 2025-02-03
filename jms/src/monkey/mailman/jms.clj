@@ -29,21 +29,21 @@
     (some? (when (contains? @listeners id)
              (swap! listeners dissoc id)))))
 
-(defn- dispatch-evt [listeners msg]
+(defn- dispatch-evt [{:keys [listeners] :as broker} msg]
   (let [ld @listeners
         evt (deserialize msg)]
     (when (not-empty ld)
       (log/debug "Dispatching event to" (count ld) "listeners:" evt)
       (doseq [l (vals ld)]
-        ;; TODO Re-post resulting events
-        (c/invoke-listener l evt)))))
+        (when-let [r (c/invoke-listener l evt)]
+          (log/trace "Posting result:" r)
+          (c/post-events broker r))))))
 
 (defn- set-listener
   "Sets the listener on the consumer.  If this is set, it's no longer possible to
    poll for events."
   [consumer l]
-  ;; TODO Move this functionality into the jms lib
-  (.setMessageListener (:consumer consumer) (jms/make-listener l)))
+  (jms/set-listener consumer l))
 
 (defrecord JmsBroker [context producer consumer listeners]
   c/EventPoster
@@ -62,7 +62,7 @@
   (add-listener [this l]
     (let [listener (->Listener (random-uuid) l listeners)]
       (when (= 1 (count (swap! listeners assoc (:id listener) listener)))
-        (set-listener @consumer (partial dispatch-evt listeners)))
+        (set-listener @consumer (partial dispatch-evt this)))
       listener)))
 
 (defn jms-broker

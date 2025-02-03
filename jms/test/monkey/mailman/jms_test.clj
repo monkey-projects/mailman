@@ -44,18 +44,18 @@
 (use-fixtures :once with-broker)
 
 (defn- wait-until
-  ([pred timeout]
+  ([pred timeout timeout-val]
    (let [interval 100]
      (loop [elapsed 0]
        (if-let [v (pred)]
          v
          (if (> elapsed timeout)
-           ::timeout
+           (or timeout-val ::timeout)
            (do
              (Thread/sleep interval)
              (recur (+ elapsed interval))))))))
   ([pred]
-   (wait-until pred 1000)))
+   (wait-until pred 1000 nil)))
 
 (deftest jms-broker
   (let [broker (sut/jms-broker {:url url
@@ -81,6 +81,22 @@
           (is (= evt (deref recv 1000 :timeout))))
 
         (testing "can unregister"
-          (is (true? (mc/unregister-listener listener))))
+          (is (true? (mc/unregister-listener listener))))))
 
-        (testing "re-posts resulting events")))))
+    (testing "re-posts resulting events"
+      (let [evt {:type ::first}
+            recv (atom [])
+            listener (mc/add-listener
+                      broker
+                      (fn [evt]
+                        (swap! recv conj evt)
+                        (if (= 1 (count @recv))
+                          [{:type ::second}]
+                          nil)))
+            all-recv? (fn [v]
+                        (when (= 2 (count v))
+                          v))]
+        (is (some? (mc/post-events broker [evt])))
+        (is (= [::first ::second]
+               (->> (wait-until #(all-recv? @recv) 1000 [::timeout])
+                    (map :type))))))))
