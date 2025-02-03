@@ -2,6 +2,7 @@
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.tools.logging :as log]
+            [medley.core :as mc]
             [monkey.mailman
              [core :as c]
              [jms :as jms]]))
@@ -30,32 +31,54 @@
    :build-id (:id build)
    :build build})
 
-(defn ->events [state build-id]
-  (-> state
-      (get build-id)
-      (build-cons-evt)
-      (vector)))
+(def with-build
+  {:name ::with-build
+   :enter (fn [ctx]
+            (assoc ctx ::build (get @builds (get-in ctx [:events :build-id]))))
+   :leave (fn [ctx]
+            (update ctx :result
+                    (fn [upd]
+                      (-> (swap! builds update (:id upd) mc/deep-merge upd)
+                          (get (:id upd))))))})
 
-(defn handle-build-evt [{:keys [build-id build]}]
-  (-> (swap! builds update build-id merge build)
-      (->events build-id)))
+(def ->events
+  {:name ::to-events
+   :leave (fn [{build :result :as ctx}]
+            (update ctx :result (comp vector build-cons-evt)))})
 
-(defn handle-job-evt [{:keys [build-id job-id job]}]
-  (-> (swap! builds update-in [build-id :jobs job-id] merge job)
-      (->events build-id)))
+(defn handle-build-evt [evt]
+  (:build evt))
+
+(defn handle-job-evt [evt]
+  {:jobs {(:job-id evt) (:job evt)}})
 
 (defn print-build-state [{:keys [build]}]
-  (log/info "Build state:" (:state build)))
+  (log/info "Build status:" (:status build)))
+
+(defn- build-routes [conf]
+  (reduce (fn [r [types handler]]
+            (->> types
+                 (map (fn [t] [t [handler]]))
+                 (concat r)))
+          []
+          conf))
 
 (def routes
-  [[:build/start [handle-build-evt]]
-   [:build/end [handle-build-evt]]
-   [:job/start [handle-job-evt]]
-   [:job/end [handle-job-evt]]
-   [:build/updated [print-build-state]]])
+  (build-routes
+   {[:build/start :build/end]
+    {:handler handle-build-evt
+     :interceptors [->events
+                    with-build]}
+    [:job/start :job/end]
+    {:handler handle-job-evt
+     :interceptors [->events
+                    with-build]}
+    [:build/updated]
+    {:handler print-build-state}}))
 
 (defn add-listeners [broker]
   (let [router (c/router routes)]
+    ;; Handle each of the destinations with the same router
     (->> destinations
          (vals)
          (map (fn [d]

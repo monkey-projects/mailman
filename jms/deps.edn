@@ -4,8 +4,9 @@
  :aliases
  {:dev
   {:extra-paths ["dev-resources" "env/dev"]
-   :override-deps {ch.qos.logback/logback-classic {:mvn/version "1.5.16"}
-                   com.monkeyprojects/mailman-core {:local/root "../core"}}}
+   :extra-deps {ch.qos.logback/logback-classic {:mvn/version "1.5.16"}
+                medley/medley {:mvn/version "1.4.0"}}
+   :override-deps {com.monkeyprojects/mailman-core {:local/root "../core"}}}
 
   :test
   ;; clj -X:test
