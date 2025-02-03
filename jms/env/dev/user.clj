@@ -7,6 +7,10 @@
              [core :as c]
              [jms :as jms]]))
 
+(def builds "Fake database" (atom {}))
+
+;;; Destination configuration
+
 (def builds-topic "topic://mailman.builds")
 (def jobs-topic "topic://mailman.jobs")
 (def builds-cons-topic "topic://mailman.builds.consolidated")
@@ -22,8 +26,6 @@
   "Maps an event to a destination"
   (comp destinations :type))
 
-(def builds (atom {}))
-
 (defn build-cons-evt
   "Creates consolidated event from the build"
   [build]
@@ -31,7 +33,12 @@
    :build-id (:id build)
    :build build})
 
+;;; Interceptors
+
 (def with-build
+  "Looks up the build referred to in the event from database and adds it to the context.
+   Not very useful, since the handler only receives the event, not the full context.  But
+   the leave handler automatically updates the build, which should be in the context result."
   {:name ::with-build
    :enter (fn [ctx]
             (assoc ctx ::build (get @builds (get-in ctx [:events :build-id]))))
@@ -42,11 +49,15 @@
                           (get (:id upd))))))})
 
 (def ->events
+  "Converts the build in the result to a `build/updated` event"
   {:name ::to-events
    :leave (fn [{build :result :as ctx}]
             (update ctx :result (comp vector build-cons-evt)))})
 
+;;; Handlers
+
 (defn handle-build-evt [evt]
+  ;; Trivial now that interceptors take over part of the functionality
   (:build evt))
 
 (defn handle-job-evt [evt]
@@ -54,6 +65,8 @@
 
 (defn print-build-state [{:keys [build]}]
   (log/info "Build status:" (:status build)))
+
+;;; Routing
 
 (defn- build-routes [conf]
   (reduce (fn [r [types handler]]
@@ -76,11 +89,14 @@
     [:build/updated]
     {:handler print-build-state}}))
 
+;;; Broker setup
+
 (defn add-listeners [broker]
   (let [router (c/router routes)]
     ;; Handle each of the destinations with the same router
     (->> destinations
          (vals)
+         (distinct)
          (map (fn [d]
                 (c/add-listener broker {:destination d
                                         :handler router})))
@@ -96,6 +112,8 @@
 
 (defn post [broker evt]
   (c/post-events broker [evt]))
+
+;;; Global state functions
 
 (defonce broker (atom nil))
 
