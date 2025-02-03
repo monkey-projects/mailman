@@ -32,7 +32,9 @@
 
       (testing "cannot add listener when broker has been stopped"
         (is (nil? (sut/stop-broker broker)))
-        (is (thrown? Exception (mc/add-listener broker (constantly nil))))))))
+        (is (thrown? Exception (mc/add-listener broker (constantly nil))))))
+
+    (testing "posts returned events")))
 
 (deftest async-invoker
   (testing "invokes each of the handlers async"

@@ -59,7 +59,8 @@
 
 (deftest jms-broker
   (let [broker (sut/jms-broker {:url url
-                                :destination queue})]
+                                :destination queue
+                                :destination-mapper :destination})]
     
     (testing "can post and poll events"
       (let [evt {:type ::test-event}]
@@ -91,7 +92,7 @@
                       (fn [evt]
                         (swap! recv conj evt)
                         (if (= 1 (count @recv))
-                          [{:type ::second}]
+                          [{:result [{:type ::second}]}]
                           nil)))
             all-recv? (fn [v]
                         (when (= 2 (count v))
@@ -99,4 +100,18 @@
         (is (some? (mc/post-events broker [evt])))
         (is (= [::first ::second]
                (->> (wait-until #(all-recv? @recv) 1000 [::timeout])
-                    (map :type))))))))
+                    (map :type))))))
+
+    (testing "can post and listen to specific destination"
+      (let [dest topic
+            evt {:type ::topic-evt
+                 :destination dest}
+            recv (promise)
+            listener (mc/add-listener
+                      broker
+                      {:destination dest
+                       :handler (fn [evt]
+                                  (deliver recv evt)
+                                  nil)})]
+        (is (some? (mc/post-events broker [evt])))
+        (is (= evt (deref recv 1000 :timeout)))))))

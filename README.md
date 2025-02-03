@@ -18,16 +18,19 @@ below for more on what these are.
 
 ## Usage
 
-Include the library in your `deps.edn`:
+Include the core library in your `deps.edn`:
 ```clojure
-{:deps {com.monkeyprojects/mailman {:mvn/version "<version>"}}}
+{:deps {com.monkeyprojects/mailman-core {:mvn/version "<version>"}}}
 ```
 
 Or with Leiningen:
 ```clojure
 (defproject ...
-  :dependencies [[com.monkeyprojects/mailman "<version>"]])
+  :dependencies [[com.monkeyprojects/mailman-core "<version>"]])
 ```
+
+The core library provides the protocols and basic functionality.  There is also an
+in-memory implementation of a broker, for testing and development purposes.
 
 Functionality is spread over several namespaces, but the core is in `monkey.mailman.core`.
 Similar to a HTTP-style application, you define your "routes", which map event types to
@@ -200,6 +203,22 @@ a listener instead, using `add-listener`.
 
 The listener is also a protocol, called `Listener`, which is again dependent on your
 broker implementation.
+
+## Implementations
+
+Currently, *Mailman* provides two implementations for its protocols:
+
+ - `manifold`, based on the excellent [manifold](https://github.com/clj-commons/manifold) async library.
+ - `jms`, that builds upon the [monkey-jms](https://github.com/monkey-projects/monkey-jms) library to connect to a JMS broker for messaging.
+
+The [manifold lib](manifold) provides an in-memory broker, similar to the one provided in the
+core, but it's built upon Manifold streams.  Furthermore, it provides some functions
+to work with async event handlers, whereas all core functions all assume your handlers
+work synchronously.
+
+The [JMS lib](jms) uses JMS 3.0 to connect to a broker using AMQP protocol.  It is able
+to use queues or topics (possibly durable) for posting and receiving events.  Events are
+by default encoded using `edn`, but this can be overridden.
 
 ## LICENSE
 

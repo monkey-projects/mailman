@@ -10,7 +10,7 @@
   :test
   ;; clj -X:test
   {:extra-paths ["test"]
-   :extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1-SNAPSHOT"}
+   :extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1"}
                 ;; For embedded broker in tests
                 org.apache.activemq/artemis-server {:mvn/version "2.39.0"}
                 org.apache.activemq/artemis-amqp-protocol {:mvn/version "2.39.0"}}
@@ -22,7 +22,7 @@
 
   :jar
   ;; clj -X:jar
-  {:extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1-SNAPSHOT"}}
+  {:extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1"}}
    :exec-fn monkey.build/jar
    :exec-args {:jar "target/mailman-jms.jar"}}
 

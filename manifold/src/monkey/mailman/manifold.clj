@@ -31,6 +31,7 @@
   [broker]
   (ms/consume (fn [evt]
                 ;; TODO Error handling
+                ;; TODO Dispatch returned events
                 (doseq [l (vals @(:listeners broker))]
                   (c/invoke-listener l evt)))
               (:stream broker)))
