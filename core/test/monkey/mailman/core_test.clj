@@ -38,8 +38,8 @@
 
 (deftest router
   (let [handled (atom [])
-        handler (fn [evt]
-                  (swap! handled conj evt))
+        handler (fn [{:keys [event]}]
+                  (swap! handled conj event))
         r (sut/router {::test-type [handler]})]
     (testing "creates function"
       (is (fn? r)))

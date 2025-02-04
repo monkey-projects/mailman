@@ -3,9 +3,9 @@
             [monkey.mailman.interceptors :as sut]))
 
 (deftest handler-interceptor
-  (testing "invokes handler with event, adds result to context"
-    (let [handler (fn [evt]
-                    {::test-result evt})
+  (testing "invokes handler with context, adds result to context"
+    (let [handler (fn [{:keys [event]}]
+                    {::test-result event})
           evt {:type ::test-event}
           res (-> (sut/make-context evt)
                   (sut/add-interceptors [(sut/handler-interceptor handler)])

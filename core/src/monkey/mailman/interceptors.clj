@@ -32,13 +32,13 @@
   (assoc ctx :event evt))
 
 (defn handler-interceptor
-  "Interceptor that invokes the handler with the `:event` in the context.  Updates
-   the context so it matches the `handler-result` spec."
+  "Interceptor that invokes the handler with the context.  Updates the context
+   with the handler return value so it matches the `handler-result` spec."
   [handler]
   {:name ::handler
    :leave (fn [ctx]
             (assoc ctx
-                   :result (handler (:event ctx))
+                   :result (handler ctx)
                    :handler handler))})
 
 (defn- sanitize [x valid?]

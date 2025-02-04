@@ -52,14 +52,17 @@ and returns the results.
 ;; => returns [{:event {:type :event-1} :handler <handler-fn> :result ::first}]
 ```
 
-The event handlers are 1-arity functions that take the event as argument.  The return
+The event handlers are 1-arity functions that take the context as argument.  The return
 value is added to the resulting structure, along with the input event and the handler
 function itself.  It's up to the event broker implementation to process this result,
 but the intention is that when the result is an event, it is re-dispatched.
 
+The context is a structure that contains at least an `:event`, but it may contain
+more, see **interceptors** below.
+
 ## Handlers
 
-A handler is a function that takes an event, and returns a result structure.  This
+A handler is a function that takes a context, and returns a result structure.  This
 structure consists of the input event, the handler and a result.  To make setting
 up handlers easier, a protocol exists called `ToHandler`.  It is responsible for
 converting its argument in a handler record.  This is then converted into a handler
@@ -73,7 +76,7 @@ structure.
 
 Map handlers are useful if you want to provide some more detail to the handler.
 At the very least it requires a `:handler` key, that provides the handler function,
-which takes an event, and returns some result (probably new events to dispatch).
+which takes a context, and returns some result (probably new events to dispatch).
 
 But you can also add interceptors to them.
 

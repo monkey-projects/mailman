@@ -7,6 +7,8 @@
              [core :as c]
              [jms :as jms]]))
 
+;;; Here follows an example of how an application that uses Mailman over JMS could look like.
+
 (def builds "Fake database" (atom {}))
 
 ;;; Destination configuration
@@ -56,12 +58,13 @@
 
 ;;; Handlers
 
-(defn handle-build-evt [evt]
+(defn handle-build-evt [ctx]
   ;; Trivial now that interceptors take over part of the functionality
-  (:build evt))
+  (get-in ctx [:event :build]))
 
-(defn handle-job-evt [evt]
-  {:jobs {(:job-id evt) (:job evt)}})
+(defn handle-job-evt [ctx]
+  (let [{:keys [job-id job]} (:event ctx)]
+    {:jobs {job-id job}}))
 
 (defn print-build-state [{:keys [build]}]
   (log/info "Build status:" (:status build)))

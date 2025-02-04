@@ -33,11 +33,11 @@
   (testing "re-posts events in listener return values"
     (let [e (sut/make-memory-events)
           recv (promise)
-          handle-first (fn [evt]
+          handle-first (fn [{:keys [event]}]
                          {:type ::second
-                          :orig evt})
-          handle-second (fn [evt]
-                          (deliver recv evt)
+                          :orig event})
+          handle-second (fn [{:keys [event]}]
+                          (deliver recv event)
                           nil)
           router (c/router {::first [handle-first]
                             ::second [handle-second]})
