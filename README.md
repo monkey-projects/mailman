@@ -161,6 +161,38 @@ one handler cannot block another one.  An invoker is a 2-arity function that tak
 the handlers, as returned by `find-handlers`, and the event to handle.  It is
 supposed to return a list of results, which is then passed back to the broker.
 
+### Replacing Interceptors
+
+Since interceptors are often used to implement side-effects, they can be difficult to
+deal with in unit tests.  *Mailman* offers the possibility to replace interceptors in
+a router using the `replace-interceptors` function.  It takes a previously created
+router and returns a new router with all interceptors that bear the same `:name` as one
+of the given interceptors replaced.
+
+```clojure
+(def my-interceptor
+  {:name ::my-interceptor
+   :enter (fn [ctx]
+            (assoc ctx ::my-result (some-side-effecting-function!)))})
+
+(def router (mm/router [[:test/event [{:handler some-handler
+                                       :interceptors [my-interceptor]}]]]))
+
+;; Create a new interceptor with the same name but with fake effects
+(def fake-interceptor
+  {:name ::my-interceptor ; use the same name
+   :enter (fn [ctx]
+            (assoc ctx ::my-result ::fake-result))})
+
+(def test-router (mm/replace-interceptors router [fake-interceptor]))
+
+(test-router {:type :test/event})
+;; => [{:result {::my-result ::fake-result}}]
+```
+
+The original router remains unchanged, the new router applies the same compilation and
+uses the same matcher and invoker as the original.
+
 ## Brokers
 
 Mailman defines several protocols for how to post and receive events.  The `EventPoster`

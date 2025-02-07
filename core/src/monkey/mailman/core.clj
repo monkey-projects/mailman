@@ -44,7 +44,11 @@
   
   clojure.lang.PersistentArrayMap
   (->handler [m]
-    (map->Handler m)))
+    (map->Handler m))
+
+  Handler
+  (->handler [h]
+    h))
 
 (defn handler->fn
   "Converts the handler into an invokable function that applies interceptors"
@@ -103,8 +107,16 @@
             [k (map convert handlers)])
           routes)))
 
-(defn router
-  "Creates an event router function.  It can be registered as a listener and it will
+(defrecord Router [routes opts compiled]
+  clojure.lang.IFn
+  (invoke [this evt]
+    (let [matcher (:matcher opts)
+          invoker (:invoker opts)]
+      (when-let [h (find-handlers matcher compiled evt)]
+        (invoker h evt)))))
+
+(defn make-router
+  "Creates an event router object.  It can be registered as a listener and it will
    route events according to the route configuration.  The router returns a structure
    holding the processed event, the handler, and the handler return value for each
    of the matched handlers.  If no handlers are found, returns `nil`.
@@ -113,13 +125,39 @@
      - `:matcher`: function that determines the handlers to invoke for an event, defaults to `type-matcher`.
      - `:invoker`: function that performs handler invocation.  By default this is the `sync-invoker`.
      - `:interceptors`: custom interceptors, prepended to the route-specific interceptors."
-  [routes & [{:keys [matcher invoker interceptors]
-              :or {matcher type-matcher
-                   invoker sync-invoker}}]]
-  (let [compiled (->> routes
+  [routes & [{:keys [interceptors] :as opts}]]
+  (let [{:keys [matcher] :as opts} (merge {:matcher type-matcher
+                                           :invoker sync-invoker}
+                                          opts)
+        compiled (->> routes
                       (convert-handlers)
                       (add-global-interceptors interceptors)
                       (compile-routes matcher))]
-    (fn [evt]
-      (when-let [h (find-handlers matcher compiled evt)]
-        (invoker h evt)))))
+    (->Router routes opts compiled)))
+
+(def router "Alias for `make-router`" make-router)
+
+(defn replace-interceptors
+  "Creates a new router with the given interceptors replaced.  The interceptors with 
+   the same `:name` are replaced by the ones in the replacement collection.  This is
+   useful in tests when you want to 'mock out' certain side-effecting interceptors."
+  [^Router router replacements]
+  (let [smap (->> replacements
+                  (map (fn [{:keys [name] :as i}]
+                         [name i]))
+                  (into {}))]
+    (letfn [(rep [l]
+              (map (fn [{:keys [name] :as i}]
+                     (or (get smap name) i))
+                   l))
+            (rep-handler [h]
+              (-> h
+                  (->handler)
+                  (update :interceptors rep)))
+            (rep-route [[t handlers]]
+              [t (map rep-handler handlers)])]
+      (let [opts (update (:opts router) :interceptors rep)
+            routes (->> router
+                        :routes
+                        (map rep-route))]
+        (make-router routes opts)))))

@@ -41,8 +41,8 @@
         handler (fn [{:keys [event]}]
                   (swap! handled conj event))
         r (sut/router {::test-type [handler]})]
-    (testing "creates function"
-      (is (fn? r)))
+    (testing "is invokable"
+      (is (ifn? r)))
 
     (testing "dispatches event according to type"
       (let [evt {:type ::test-type}]
@@ -80,3 +80,24 @@
              (-> (r {:type ::test-type})
                  (first)
                  (select-keys [:result :intercepted?])))))))
+
+(deftest replace-interceptors
+  (let [test-interceptor {:name ::test
+                          :enter (fn [ctx]
+                                   (assoc ctx ::interceptor ::orig))}
+        new-interceptor {:name ::test
+                         :enter (fn [ctx]
+                                  (assoc ctx ::interceptor ::new))}
+        router (sut/router {::test-event [{:handler ::interceptor
+                                           :interceptors [test-interceptor]}]})
+        rep (sut/replace-interceptors router [new-interceptor])]
+    (testing "can override interceptors on router"
+      (is (= ::orig
+             (-> (router {:type ::test-event})
+                 first
+                 :result)))
+
+      (is (= ::new
+             (-> (rep {:type ::test-event})
+                 first
+                 :result))))))
