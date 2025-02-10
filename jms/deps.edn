@@ -1,5 +1,5 @@
 {:deps {com.monkeyprojects/mailman-core {:mvn/version "0.2.0-SNAPSHOT"}
-        com.monkeyprojects/monkey-jms {:mvn/version "0.2.1"}}
+        com.monkeyprojects/monkey-jms {:mvn/version "0.3.0-SNAPSHOT"}}
 
  :aliases
  {:dev
@@ -13,8 +13,7 @@
   {:extra-paths ["test"]
    :extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1"}
                 ;; For embedded broker in tests
-                org.apache.activemq/artemis-server {:mvn/version "2.39.0"}
-                org.apache.activemq/artemis-amqp-protocol {:mvn/version "2.39.0"}}
+                com.monkeyprojects/monkey-jms-artemis {:mvn/version "0.3.0-SNAPSHOT"}}
    :exec-fn monkey.test/all}
 
   :junit

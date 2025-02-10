@@ -209,7 +209,7 @@ protocols.
 ```clojure
 (require '[monkey.mailman.mem :as mb])
 
-(def broker (mb/make-memory-events))
+(def broker (mb/make-memory-broker))
 
 ;; Post a single event
 (mm/post-events broker [{:type ::test-event :message "This is a test event"}])
