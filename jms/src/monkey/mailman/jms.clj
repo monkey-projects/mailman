@@ -28,47 +28,32 @@
   [consumer l]
   (jms/set-listener consumer l))
 
-(defn- get-consumer
-  "Retrieves consumer from the state, or creates one"
-  [state dest maker]
-  (or (get-in @state [:consumers dest])
-      (do
-        (swap! state assoc-in [:consumers dest] (maker dest))
-        (get-consumer state dest maker))))
+;; Put state in a type, to hide its contents when printing, otherwise we may
+;; risk stack overflow.
+(deftype State [values])
 
-(defn- get-producer
-  "Retrieves producer from the state, or creates one"
-  [{:keys [context config state] :as broker} dest]
-  (let [dest (or dest (:destination config))]
-    (if-let [p (get-in @state [:producers dest])]
-      p
-      (do
-        (log/debug "Creating producer for" dest)
-        (let [p (jms/make-producer context dest (producer-opts config))]
-          (swap! state assoc-in [:producers dest] p)
-          p)))))
+(defn- state-add-consumer! [state dest c]
+  (swap! (.values state) assoc-in [:consumers dest] c)
+  c)
 
-(defn- post [broker [dest msgs :as evt]]
-  (if-let [dest (or dest (get-in broker [:config :destination]))]
-    (let [p (get-producer broker dest)]
-      (map (fn [msg]
-             (p msg)
-             msg)
-           msgs))
-    (log/warn "No destination configured for these events:" msgs)))
+(defn- state-get-consumer [state dest]
+  (get-in @(.values state) [:consumers dest]))
 
-(defrecord Listener [id handler destination state]
-  c/Listener
-  (invoke-listener [this evt]
-    (handler evt))
-  
-  (unregister-listener [this]
-    ;; TODO Stop consuming when the last listener for a consumer has been unregistered
-    (some? (when (contains? (get-in @state [:listeners destination]) id)
-             (swap! state update-in [:listeners destination] dissoc id)))))
+(defn- state-add-producer! [state dest p]
+  (swap! (.values state) assoc-in [:producers dest] p)
+  p)
+
+(defn- state-get-producer [state dest]
+  (get-in @(.values state) [:producers dest]))
+
+(defn- state-get-listeners [state dest]
+  (get-in @(.values state) [:listeners dest]))
+
+(defn- state-remove-listener! [state dest id]
+  (swap! (.values state) update-in [:listeners dest] dissoc id))
 
 (defn- dispatch-evt [broker dest msg]
-  (let [ld (-> broker :state deref (get-in [:listeners dest]))
+  (let [ld (state-get-listeners (:state broker) dest)
         evt (deserialize msg)]
     (when (not-empty ld)
       (log/trace "Dispatching event to" (count ld) "listeners:" evt)
@@ -86,7 +71,7 @@
         (catch Throwable ex
           (log/error "Unable to dispatch" ex))))))
 
-(defn- register-listener
+(defn- state-register-listener!
   "Registers a new listener in the state.  If there is no consumer yet for the destination 
    configured in the listener, one is created."
   [state {:keys [context config] :as broker} {dest :destination :as listener}]
@@ -101,9 +86,47 @@
                 (set-listener c (partial dispatch-evt broker dest))
                 state)
               (assoc-in state [:consumers dest] (make-consumer dest))))]
-    (-> state
-        (assoc-in [:listeners dest (:id listener)] listener)
-        (maybe-create-consumer))))
+    (swap! (.values state)
+           (fn [state]
+             (-> state
+                 (assoc-in [:listeners dest (:id listener)] listener)
+                 (maybe-create-consumer))))))
+
+(defn- get-consumer
+  "Retrieves consumer from the state, or creates one"
+  [state dest maker]
+  (or (state-get-consumer state dest)
+      (state-add-consumer! state dest (maker dest))))
+
+(defn- get-producer
+  "Retrieves producer from the state, or creates one"
+  [{:keys [context config state] :as broker} dest]
+  (let [dest (or dest (:destination config))]
+    (if-let [p (state-get-producer state dest)]
+      p
+      (do
+        (log/debug "Creating producer for" dest)
+        (let [p (jms/make-producer context dest (producer-opts config))]
+          (state-add-producer! state dest p))))))
+
+(defn- post [broker [dest msgs :as evt]]
+  (if-let [dest (or dest (get-in broker [:config :destination]))]
+    (let [p (get-producer broker dest)]
+      (map (fn [msg]
+             (p msg)
+             msg)
+           msgs))
+    (log/warn "No destination configured for these events:" msgs)))
+
+(defrecord Listener [id handler destination state]
+  c/Listener
+  (invoke-listener [this evt]
+    (handler evt))
+  
+  (unregister-listener [this]
+    ;; TODO Stop consuming when the last listener for a consumer has been unregistered
+    (some? (when (contains? (state-get-listeners state destination) id)
+             (state-remove-listener! state destination id)))))
 
 (defn- group-by-dest [{:keys [destination destination-mapper]} events]
   (group-by (or destination-mapper (constantly destination))
@@ -138,7 +161,7 @@
                        (assoc :id (random-uuid)
                               :state state)
                        (map->Listener))]
-      (swap! state register-listener this listener)
+      (state-register-listener! state this listener)
       listener)))
 
 (defn jms-broker
@@ -148,7 +171,7 @@
     (->JmsBroker
      ctx
      config
-     (atom {}))))
+     (->State (atom {})))))
 
 (defn disconnect
   "Closes the connection to the JMS broker"
