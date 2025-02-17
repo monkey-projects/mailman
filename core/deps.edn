@@ -28,7 +28,7 @@
                            [:license
                             [:name "GPL v3"]
                             [:url "https://www.gnu.org/licenses/gpl-3.0.en.html#license-text"]]]]
-               :version [[:env "LIB_VERSION"] "0.2.0-SNAPSHOT"]}}
+               :version [[:env "LIB_VERSION"] "0.2.1-SNAPSHOT"]}}
 
   :install
   {:exec-fn monkey.build/jar+install}

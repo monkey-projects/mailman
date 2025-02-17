@@ -1,5 +1,5 @@
-{:deps {com.monkeyprojects/mailman-core {:mvn/version "0.2.0-SNAPSHOT"}
-        com.monkeyprojects/monkey-jms {:mvn/version "0.3.0-SNAPSHOT"}}
+{:deps {com.monkeyprojects/mailman-core {:mvn/version "0.2.0"}
+        com.monkeyprojects/monkey-jms {:mvn/version "0.3.0"}}
 
  :aliases
  {:dev
@@ -13,7 +13,7 @@
   {:extra-paths ["test"]
    :extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1"}
                 ;; For embedded broker in tests
-                com.monkeyprojects/monkey-jms-artemis {:mvn/version "0.3.0-SNAPSHOT"}}
+                com.monkeyprojects/monkey-jms-artemis {:mvn/version "0.3.0"}}
    :exec-fn monkey.test/all}
 
   :junit
@@ -30,7 +30,7 @@
                            [:license
                             [:name "GPL v3"]
                             [:url "https://www.gnu.org/licenses/gpl-3.0.en.html#license-text"]]]]
-               :version [[:env "LIB_VERSION"] "0.2.0-SNAPSHOT"]}}
+               :version [[:env "LIB_VERSION"] "0.2.1-SNAPSHOT"]}}
 
   :install
   ;; clj -X:jar:install
