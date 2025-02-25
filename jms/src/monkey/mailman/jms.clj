@@ -1,7 +1,9 @@
 (ns monkey.mailman.jms
   (:require [clojure.edn :as edn]
             [clojure.tools.logging :as log]
-            [monkey.mailman.core :as c]
+            [monkey.mailman
+             [core :as c]
+             [utils :as u]]
             [monkey.jms :as jms])
   (:import [java.io PushbackReader StringReader]))
 
@@ -58,16 +60,7 @@
     (when (not-empty ld)
       (log/trace "Dispatching event to" (count ld) "listeners:" evt)
       (try
-        (doseq [l (vals ld)]
-          (try
-            (let [r (->> (c/invoke-listener l evt)
-                         (map :result)
-                         (flatten)
-                         (remove nil?))]
-              (log/trace "Posting result:" r)
-              (c/post-events broker r))
-            (catch Exception ex
-              (log/error "Failed to handle event" ex))))
+        (u/invoke-and-repost evt broker (vals ld))
         (catch Throwable ex
           (log/error "Unable to dispatch" ex))))))
 

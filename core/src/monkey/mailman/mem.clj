@@ -1,7 +1,9 @@
 (ns monkey.mailman.mem
   "In-memory implementation of mailman protocols, primarily intended for development 
    and testing purposes."
-  (:require [monkey.mailman.core :as mc])
+  (:require [monkey.mailman
+             [core :as mc]
+             [utils :as u]])
   (:import [java.util.concurrent ConcurrentLinkedQueue]))
 
 (defrecord Listener [handler unregister-fn]
@@ -26,11 +28,7 @@
                        ;; Runs a simple poll loop
                        (while (not-empty (:listeners @state))
                          (doseq [evt (mc/poll-events e nil)]
-                           (doseq [l (:listeners @state)]
-                             (try
-                               (->> (mc/invoke-listener l evt)
-                                    (post-results e))
-                               (catch Exception ignored))))
+                           (u/invoke-and-repost evt e (:listeners @state)))
                          (Thread/sleep 100))))]
       (.start t)
       (swap! state assoc :thread t))))

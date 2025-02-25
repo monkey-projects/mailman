@@ -4,6 +4,7 @@
  :aliases
  {:dev
   {:extra-paths ["env/dev"]
+   :extra-deps {ch.qos.logback/logback-classic {:mvn/version "1.5.16"}}
    :override-deps {com.monkeyprojects/mailman-core {:local/root "../core"}}}
 
   :test

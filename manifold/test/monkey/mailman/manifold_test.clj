@@ -32,9 +32,20 @@
 
       (testing "cannot add listener when broker has been stopped"
         (is (nil? (sut/stop-broker broker)))
-        (is (thrown? Exception (mc/add-listener broker (constantly nil))))))
+        (is (thrown? Exception (mc/add-listener broker (constantly nil)))))))
 
-    (testing "posts returned events")))
+  (testing "posts returned events"
+    (let [broker (sut/manifold-broker)
+          recv (promise)
+          routes [[::first [{:handler (constantly [{:type ::second}])}]]
+                  [::second [{:handler (fn [ctx]
+                                         (deliver recv (:event ctx))
+                                         nil)}]]]
+          router (mc/make-router routes)
+          l (mc/add-listener broker router)]
+      (is (some? (mc/post-events broker [{:type ::first}])))
+      (is (= ::second (-> (deref recv 100 :timeout)
+                          :type))))))
 
 (deftest async-invoker
   (testing "invokes each of the handlers async"

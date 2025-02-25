@@ -3,10 +3,13 @@
    including an in-memory implementation of a broker.  This is similar to
    the one provided in the core lib and is mainly useful for testing/development
    purposes."
-  (:require [manifold
+  (:require [clojure.tools.logging :as log]
+            [manifold
              [deferred :as md]
              [stream :as ms]]
-            [monkey.mailman.core :as c]))
+            [monkey.mailman
+             [core :as c]
+             [utils :as u]]))
 
 (defn- take-next
   "Takes the next immediately available value from the stream, or `nil` if none is available."
@@ -30,10 +33,7 @@
   "Starts receiving events from the broker stream and dispatching them to the listeners."
   [broker]
   (ms/consume (fn [evt]
-                ;; TODO Error handling
-                ;; TODO Dispatch returned events
-                (doseq [l (vals @(:listeners broker))]
-                  (c/invoke-listener l evt)))
+                (u/invoke-and-repost evt broker (vals @(:listeners broker))))
               (:stream broker)))
 
 (defn stop-broker
