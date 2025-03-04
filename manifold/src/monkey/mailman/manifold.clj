@@ -17,7 +17,7 @@
   ;; Only take if immediately available
   @(ms/try-take! stream 0))
 
-(defrecord Listener [id handler listeners]
+(deftype Listener [id handler listeners]
   c/Listener
   (invoke-listener [this evt]
     (handler evt))
@@ -33,15 +33,15 @@
   "Starts receiving events from the broker stream and dispatching them to the listeners."
   [broker]
   (ms/consume (fn [evt]
-                (u/invoke-and-repost evt broker (vals @(:listeners broker))))
-              (:stream broker)))
+                (u/invoke-and-repost evt broker (vals @(.listeners broker))))
+              (.stream broker)))
 
 (defn stop-broker
   "Shuts down the broker stream"
   [broker]
-  (ms/close! (:stream broker)))
+  (ms/close! (.stream broker)))
 
-(defrecord ManifoldBroker [stream listeners]
+(deftype ManifoldBroker [stream listeners]
   c/EventPoster
   (post-events [this events]
     (md/chain
@@ -65,7 +65,7 @@
         (throw (ex-info "Cannot add listener, broker has already been stopped")))
       (when (empty? @listeners)
         (start-broker this))
-      (swap! listeners assoc (:id w) w)
+      (swap! listeners assoc (.id w) w)
       w)))
 
 (defn manifold-broker [& {:keys [buf-size]
