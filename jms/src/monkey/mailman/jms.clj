@@ -106,6 +106,7 @@
   (if-let [dest (or dest (get-in broker [:config :destination]))]
     (let [p (get-producer broker dest)]
       (map (fn [msg]
+             (log/trace "Posting message to JMS broker:" msg)
              (p msg)
              msg)
            msgs))
