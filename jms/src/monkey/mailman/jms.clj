@@ -38,15 +38,21 @@
   (swap! (.values state) assoc-in [:consumers dest] c)
   c)
 
+(defn- state-get-consumers [state]
+  (:consumers @(.values state)))
+
 (defn- state-get-consumer [state dest]
-  (get-in @(.values state) [:consumers dest]))
+  (get (state-get-consumers state) dest))
 
 (defn- state-add-producer! [state dest p]
   (swap! (.values state) assoc-in [:producers dest] p)
   p)
 
+(defn- state-get-producers [state]
+  (:producers @(.values state)))
+
 (defn- state-get-producer [state dest]
-  (get-in @(.values state) [:producers dest]))
+  (get (state-get-producers state) dest))
 
 (defn- state-get-listeners [state dest]
   (get-in @(.values state) [:listeners dest]))
@@ -126,6 +132,10 @@
   (group-by (or destination-mapper (constantly destination))
             events))
 
+(defn- close-all [closeables]
+  (doseq [c closeables]
+    (.close c)))
+
 (defrecord JmsBroker [context config state]
   c/EventPoster
   (post-events [this events]
@@ -156,7 +166,12 @@
                               :state state)
                        (map->Listener))]
       (state-register-listener! state this listener)
-      listener)))
+      listener))
+
+  java.lang.AutoCloseable
+  (close [this]
+    (close-all (vals (state-get-consumers state)))
+    (close-all (vals (state-get-producers state)))))
 
 (defn jms-broker
   "Creates an event broker uses JMS"

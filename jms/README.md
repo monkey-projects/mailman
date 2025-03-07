@@ -87,6 +87,12 @@ Similarly, you can specify a `client-id` and `id` in the broker configuration.  
 are needed, the `client-id` is used when connecting to the broker, and the `id` is
 used when creating a message consumer.
 
+## Closing
+
+The JMS implementation the Mailman broker implements `java.lang.AutoCloseable` so in
+order to do release any resources and make sure all messages are published, you should
+invoke `close` on the broker when it's no longer needed.
+
 ## TODO
 
 Some things will probably be needed as we go along:

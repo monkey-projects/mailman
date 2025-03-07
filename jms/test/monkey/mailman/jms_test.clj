@@ -29,6 +29,12 @@
   ([pred]
    (wait-until pred 1000 nil)))
 
+(defrecord TestCloseable [on-close]
+  java.lang.AutoCloseable
+  (close [this]
+    (on-close this)
+    nil))
+
 (deftest jms-broker
   (let [broker (sut/jms-broker {:url url
                                 :destination queue
@@ -86,4 +92,13 @@
                                   (deliver recv evt)
                                   nil)})]
         (is (some? (mc/post-events broker [evt])))
-        (is (= evt (deref recv 1000 :timeout)))))))
+        (is (= evt (deref recv 1000 :timeout))))))
+
+  (testing "closes all producers and consumers on `close`"
+    (let [closed (atom #{})
+          c (->TestCloseable (fn [_] (swap! closed conj :consumer)))
+          p (->TestCloseable (fn [_] (swap! closed conj :producer)))
+          broker (sut/map->JmsBroker {:state (sut/->State (atom {:consumers {"test-dest" c}
+                                                                 :producers {"test-dest" p}}))})]
+      (is (nil? (.close broker)))
+      (is (= #{:consumer :producer} @closed)))))
