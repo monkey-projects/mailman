@@ -170,6 +170,7 @@
 
   java.lang.AutoCloseable
   (close [this]
+    ;; TODO Maybe we should disconnect as well?
     (close-all (vals (state-get-consumers state)))
     (close-all (vals (state-get-producers state)))))
 

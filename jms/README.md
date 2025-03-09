@@ -38,7 +38,7 @@ but this may very likely be insufficient:
 
 This will use that single destination for all events when posting and for all listeners.
 
-### Multiple Destinations
+### Listening to Multiple Destinations
 
 It is however also possible to use multiple destinations, per event that's posted and
 per listener.  For posting, you can specify a `destination-mapper` in the configuration.
@@ -76,6 +76,33 @@ When adding a listener to a destination for the first time, a new consumer will 
 set up.  You can unregister a listener by invoking `mc/unregister-listener` on the
 return value of `add-listener`.
 
+### Posting to Multiple Destinations
+
+By default, the `destination` configured on the broker is used to select where to
+post new messages using `post-events`.  If a `destination-mapper` is specified, that
+one will have priority.  It will be called on each posted event to determine the
+destination.
+
+You can however also override the destination *per event*.  To do this, simply add
+a `destination` property to the event:
+
+```clojure
+(def destinations
+  {:event-1 "topic://destination-1"
+   :event-2 "topic://destination-2"})
+
+;; Destination mapper checks the `destinations` map
+(def broker (jms/jms-broker {:destination-mapper (comp destinations :type)}))
+
+;; This event is posted to topic://destination-1
+(mc/post-events broker [{:type :event-1 :message "First message"}])
+
+;; This event is posted to topic://other-destination, even though it's type is :event-1
+(mc/post-events broker [{:type :event-1 :message "Second message" :destination "topic://other-destination"}])
+```
+
+This allows for maximum flexibility when posting events.
+
 ### Serialization
 
 By default all messages are encoded as `edn`, but you can override this by specifying
@@ -102,6 +129,6 @@ Some things will probably be needed as we go along:
 
 ## License
 
-[MIT License](../LICENSE)
+[GPLv3.0 license](../LICENSE)
 
 Copyright (c) 2025 by [Monkey Projects BV](https://www.monkey-projects.be)
