@@ -84,21 +84,18 @@ post new messages using `post-events`.  If a `destination-mapper` is specified, 
 one will have priority.  It will be called on each posted event to determine the
 destination.
 
-You can however also override the destination *per event*.  To do this, simply add
-a `destination` property to the event:
-
 ```clojure
 (def destinations
   {:event-1 "topic://destination-1"
    :event-2 "topic://destination-2"})
 
-;; Destination mapper checks the `destinations` map
-(def broker (jms/jms-broker {:destination-mapper (comp destinations :type)}))
+;; Destination mapper checks the `destination` property, or `destinations` map
+(def broker (jms/jms-broker {:destination-mapper (some-fn :destination (comp destinations :type)}))
 
 ;; This event is posted to topic://destination-1
 (mc/post-events broker [{:type :event-1 :message "First message"}])
 
-;; This event is posted to topic://other-destination, even though it's type is :event-1
+;; This event is posted to topic://other-destination, even though the map says otherwise
 (mc/post-events broker [{:type :event-1 :message "Second message" :destination "topic://other-destination"}])
 ```
 

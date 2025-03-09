@@ -13,7 +13,7 @@
 
 ;;; Destination configuration
 
-(def builds-topic "topic://mailman.builds")
+(def builds-topic "topic://mailman.builds::q")
 (def jobs-topic "topic://mailman.jobs")
 (def builds-cons-topic "topic://mailman.builds.consolidated")
 
