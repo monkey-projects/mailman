@@ -94,11 +94,22 @@
         (is (some? (mc/post-events broker [evt])))
         (is (= evt (deref recv 1000 :timeout))))))
 
-  (testing "closes all producers and consumers on `close`"
-    (let [closed (atom #{})
-          c (->TestCloseable (fn [_] (swap! closed conj :consumer)))
-          p (->TestCloseable (fn [_] (swap! closed conj :producer)))
-          broker (sut/map->JmsBroker {:state (sut/->State (atom {:consumers {"test-dest" c}
-                                                                 :producers {"test-dest" p}}))})]
-      (is (nil? (.close broker)))
-      (is (= #{:consumer :producer} @closed)))))
+  (testing "`close`"
+    (testing "closes all producers and consumers"
+      (let [closed (atom #{})
+            c (->TestCloseable (fn [_] (swap! closed conj :consumer)))
+            p (->TestCloseable (fn [_] (swap! closed conj :producer)))
+            broker (sut/map->JmsBroker {:state (sut/->State (atom {:consumers {"test-dest" c}
+                                                                   :producers {"test-dest" p}}))})]
+        (is (nil? (.close broker)))
+        (is (= #{:consumer :producer} @closed))))
+
+    (testing "disconnects when `disconnect?` is `true`"
+      (let [disc? (atom false)]
+        (with-redefs [sut/disconnect (fn [_]
+                                       (reset! disc? true))]
+          (is (nil? (-> (sut/map->JmsBroker {:state (sut/->State (atom {}))
+                                             :context ::test-context
+                                             :config {:disconnect? true}})
+                        (.close))))
+          (is (true? @disc?)))))))

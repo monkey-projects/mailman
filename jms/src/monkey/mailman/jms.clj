@@ -136,6 +136,11 @@
   (doseq [c closeables]
     (.close c)))
 
+(defn disconnect
+  "Closes the connection to the JMS broker"
+  [broker]
+  (jms/disconnect (:context broker)))
+
 (defrecord JmsBroker [context config state]
   c/EventPoster
   (post-events [this events]
@@ -170,9 +175,17 @@
 
   java.lang.AutoCloseable
   (close [this]
-    ;; TODO Maybe we should disconnect as well?
     (close-all (vals (state-get-consumers state)))
-    (close-all (vals (state-get-producers state)))))
+    (close-all (vals (state-get-producers state)))
+    ;; Only disconnect when specified
+    (when (get-in this [:config :disconnect?])
+      (disconnect this)
+      nil)))
+
+(defn make-state
+  "Creates a new empty state object that can be passed to a new JmsBroker."
+  []
+  (->State (atom {})))
 
 (defn jms-broker
   "Creates an event broker uses JMS"
@@ -180,10 +193,5 @@
   (let [ctx (jms/connect config)]
     (->JmsBroker
      ctx
-     config
-     (->State (atom {})))))
-
-(defn disconnect
-  "Closes the connection to the JMS broker"
-  [broker]
-  (jms/disconnect (:context broker)))
+     (assoc config :disconnect? true)
+     (make-state))))

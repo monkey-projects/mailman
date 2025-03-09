@@ -23,7 +23,8 @@ Connect to the remote broker:
 
 From the on, you can register listeners, post events, etc., as explained in the
 [core documentation](../README.md).  When you're done, you can invoke the `disconnect`
-function to close the connection to the broker.
+function to close the connection to the broker, or preferrably, invoke `close` on
+the broker, which also shuts down consumers and producers (see below).
 
 ## Configuration
 
@@ -118,7 +119,29 @@ used when creating a message consumer.
 
 The JMS implementation the Mailman broker implements `java.lang.AutoCloseable` so in
 order to do release any resources and make sure all messages are published, you should
-invoke `close` on the broker when it's no longer needed.
+invoke `close` on the broker when it's no longer needed.  This also closes the connection
+to the JMS broker server.
+
+You can, however, specify your own connection and not have it closed by manually creating
+a `JmsRecord` object, like this:
+
+```clojure
+;; Create own connection
+(require '[monkey.jms :as mj])
+
+(def conn (mj/connect {:url "..."}))
+
+(def broker (jms/->JmsBroker
+             conn
+	     {:destination "topic://test-dest"}
+	     (jms/make-state)))
+
+;; Now, close will not disconnect
+(.close broker) ; => connection is still open
+
+;; Manually disconnect
+(mj/disconnect conn)
+```
 
 ## TODO
 
