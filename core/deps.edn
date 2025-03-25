@@ -4,13 +4,13 @@
  :aliases
  {:dev
   {:extra-paths ["env/dev" "dev-resources"]
-   :extra-deps {ch.qos.logback/logback-classic {:mvn/version "1.5.16"}
+   :extra-deps {ch.qos.logback/logback-classic {:mvn/version "1.5.18"}
                 org.clojure/tools.logging {:mvn/version "1.3.0"}
-                org.slf4j/slf4j-api {:mvn/version "2.0.16"}}}
+                org.slf4j/slf4j-api {:mvn/version "2.0.17"}}}
 
   :test
   {:extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1"}
-                ch.qos.logback/logback-classic {:mvn/version "1.5.16"}}
+                ch.qos.logback/logback-classic {:mvn/version "1.5.18"}}
    :exec-fn monkey.test/all}
 
   :watch
@@ -28,7 +28,7 @@
                            [:license
                             [:name "GPL v3"]
                             [:url "https://www.gnu.org/licenses/gpl-3.0.en.html#license-text"]]]]
-               :version [[:env "LIB_VERSION"] "0.2.4-SNAPSHOT"]}}
+               :version [[:env "LIB_VERSION"] "0.2.5-SNAPSHOT"]}}
 
   :install
   {:exec-fn monkey.build/jar+install}
