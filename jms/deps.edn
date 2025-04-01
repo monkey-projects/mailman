@@ -1,5 +1,5 @@
 {:deps {com.monkeyprojects/mailman-core {:mvn/version "0.2.4"}
-        com.monkeyprojects/monkey-jms {:mvn/version "0.3.2-SNAPSHOT"}}
+        com.monkeyprojects/monkey-jms {:mvn/version "0.3.2"}}
 
  :aliases
  {:dev
@@ -13,7 +13,7 @@
   {:extra-paths ["test"]
    :extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1"}
                 ;; For embedded broker in tests
-                com.monkeyprojects/monkey-jms-artemis {:mvn/version "0.3.2-SNAPSHOT"}}
+                com.monkeyprojects/monkey-jms-artemis {:mvn/version "0.3.2"}}
    :exec-fn monkey.test/all}
 
   :junit
