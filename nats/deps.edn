@@ -17,7 +17,8 @@
 
   :junit
   ;; clj -X:test:junit
-  {:exec-fn monkey.test/junit}
+  {:extra-deps {org.slf4j/slf4j-nop {:mvn/version "2.1.0-alpha1"}}
+   :exec-fn monkey.test/junit}
 
   :jar
   ;; clj -X:jar

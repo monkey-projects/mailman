@@ -52,7 +52,23 @@
         (is (some? (mc/post-events broker [evt])))
         (is (= evt (deref recv 1000 :timeout)))))
 
-    (testing "re-posts results from handlers")
+    (testing "re-posts results from handlers"
+      (let [recv (md/deferred)
+            handler (fn [evt]
+                      (md/success! recv evt)
+                      nil)]
+        (is (some? (mc/add-listener broker {:subject "test.mailman.first"
+                                            :handler (fn [evt]
+                                                       [{:result [{:type ::test
+                                                                   :message "reply"
+                                                                   :subject "test.mailman.second"}]}])})))
+        (is (some? (mc/add-listener broker {:subject "test.mailman.second"
+                                            :handler handler})))
+        (is (some? (mc/post-events broker [{:type ::test
+                                            :message "first event"
+                                            :subject "test.mailman.first"}])))
+        (is (= "reply" (-> (deref recv 1000 :timeout)
+                           :message)))))
 
     (is (some? (co/stop broker)))
     (is (nil? (.close nats)))))

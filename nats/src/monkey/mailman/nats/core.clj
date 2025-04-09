@@ -2,7 +2,9 @@
   (:require [clj-nats-async.core :as nats]
             [com.stuartsierra.component :as co]
             [manifold.stream :as ms]
-            [monkey.mailman.core :as mc]))
+            [monkey.mailman
+             [core :as mc]
+             [utils :as mu]]))
 
 (deftype State [state])
 
@@ -17,12 +19,6 @@
                           (when poller
                             (ms/close! poller))
                           (dissoc s :poller))))
-
-(defn- add-listener [state subj l]
-  (swap! (.state state) assoc-in [:listeners subj (:id l)] l))
-
-(defn- remove-listener [state subj id]
-  (swap! (.state state) update-in [:listeners subj] dissoc id))
 
 (defn- publish [nats subj evt]
   (nats/publish nats subj evt)
@@ -61,10 +57,8 @@
   (add-listener [this {:keys [subject handler]}]
     (let [s (nats/subscribe nats subject)
           l (->NatsListener (random-uuid) s handler)]
-      (add-listener state subject (:id l))
-      (ms/on-drained s #(remove-listener state subject (:id l)))
       (ms/consume (fn [evt]
-                    (mc/invoke-listener l evt))
+                    (mu/invoke-and-repost evt this [l]))
                   s)
       l))
 
