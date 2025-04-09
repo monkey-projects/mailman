@@ -48,7 +48,7 @@
       (cond->> (vec jobs)
         (core-published? ctx) (replace {test-job (m/depends-on test-job (publish-id "core"))})))))
 
-(def dep-libs ["manifold" "jms"])
+(def dep-libs ["manifold" "jms" "nats"])
 (def libs (concat ["core"] dep-libs))
 
 ;; Put jobs in var so we can get them for testing
