@@ -1,6 +1,5 @@
 (ns monkey.mailman.nats.core
   (:require [clj-nats-async.core :as nats]
-            [com.stuartsierra.component :as co]
             [manifold.stream :as ms]
             [monkey.mailman
              [core :as mc]
@@ -32,12 +31,18 @@
   (unregister-listener [this]
     (ms/close! stream)))
 
+(defn- get-subject [broker evt]
+  (let [{sm :subject-mapper s :subject} (:config broker)]
+    (or (:subject evt)
+        (when sm (sm evt))
+        s)))
+
 (defrecord NatsBroker [nats config state]
   mc/EventPoster
   (post-events [this evts]
     (->> evts
          (map (fn [evt]
-                (publish nats (or (:subject evt) (:subject config)) evt)))
+                (publish nats (get-subject this evt) evt)))
          (doall)))
   
   mc/EventReceiver
@@ -62,13 +67,13 @@
                   s)
       l))
 
-  co/Lifecycle
-  (start [this]
-    this)
-
-  (stop [this]
+  java.lang.AutoCloseable
+  (close [this]
     (close-poller state)
-    this))
+    nil))
 
 (defn make-broker [nats conf]
   (->NatsBroker nats conf (->State (atom {}))))
+
+(def connect "Just a shortcut to the nats `create-nats` function"
+  nats/create-nats)

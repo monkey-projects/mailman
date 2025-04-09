@@ -2,7 +2,6 @@
   (:require [clojure.test :refer [deftest testing is]]
             [babashka.fs :as fs]
             [clj-nats-async.core :as nats]
-            [com.stuartsierra.component :as co]
             [config.core :as cc]
             [manifold.deferred :as md]
             [monkey.mailman.core :as mc]
@@ -18,9 +17,8 @@
   (let [nats (->  {:urls [(:nats-url cc/env)]
                    :secure? true}
                   (add-creds)
-                  (nats/create-nats))
-        broker (-> (sut/make-broker nats {:subject "test.mailman"})
-                   (co/start))]
+                  (sut/connect))
+        broker (sut/make-broker nats {:subject "test.mailman"})]
     
     (testing "broker is event poster"
       (is (satisfies? mc/EventPoster broker)))
@@ -70,5 +68,5 @@
         (is (= "reply" (-> (deref recv 1000 :timeout)
                            :message)))))
 
-    (is (some? (co/stop broker)))
+    (is (nil? (.close broker)))
     (is (nil? (.close nats)))))
