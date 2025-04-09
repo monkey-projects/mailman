@@ -38,15 +38,18 @@
            (m/job-id)
            (re-matches #"^.*-test$")))
 
+(defn- find-test-job [jobs]
+  (->> jobs
+       (filter test-job?)
+       (first)))
+
 (defn dependent-lib
   "Library that's dependent on the core.  Creates the usual test and publish jobs,
    but makes the test job dependent on `core-publish` if core has been published."
   [dir]
   (fn [ctx]
     (let [jobs ((build-lib dir) ctx)
-          test-job (->> jobs
-                        (filter test-job?)
-                        (first))]
+          test-job (find-test-job jobs)]
       (cond->> (vec jobs)
         (core-published? ctx) (replace {test-job (m/depends-on test-job (publish-id "core"))})))))
 
@@ -56,7 +59,8 @@
   [ctx]
   (let [params (-> (api/build-params ctx)
                    (select-keys ["NATS_URL" "NATS_CREDS"]))
-        [test-job :as jobs] (vec ((dependent-lib "nats") ctx))]
+        jobs (vec ((dependent-lib "nats") ctx))
+        test-job (find-test-job jobs)]
     (replace {test-job (m/env test-job params)} jobs)))
 
 (def dep-libs ["manifold" "jms"])
