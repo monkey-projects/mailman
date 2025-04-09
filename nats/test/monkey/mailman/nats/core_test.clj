@@ -8,18 +8,17 @@
             [monkey.mailman.core :as mc]
             [monkey.mailman.nats.core :as sut]))
 
-(defn- as-file [creds]
-  (if (fs/exists? creds)
-    creds
-    (let [p (-> (fs/create-temp-file)
-                (fs/delete-on-exit))]
-      (spit (fs/file p) creds)
-      (str p))))
+(defn- add-creds [conf]
+  (let [creds (:nats-creds cc/env)]
+    (cond-> conf
+      (fs/exists? creds) (assoc :credential-path creds)
+      (and (some? creds) (not (fs/exists? creds))) (assoc :static-creds creds))))
 
 (deftest nats-broker
-  (let [nats (nats/create-nats {:urls [(:nats-url cc/env)]
-                                :credential-path (as-file (:nats-creds cc/env))
-                                :secure? true})
+  (let [nats (->  {:urls [(:nats-url cc/env)]
+                   :secure? true}
+                  (add-creds)
+                  (nats/create-nats))
         broker (-> (sut/make-broker nats {:subject "test.mailman"})
                    (co/start))]
     
