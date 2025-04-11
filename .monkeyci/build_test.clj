@@ -30,3 +30,16 @@
                                (first))]
         (is (some? manifold-test))
         (is (contains? (set (m/dependencies manifold-test)) "core-publish"))))))
+
+(deftest nats-lib
+  (mt/with-build-params {"NATS_URL" "test-url"}
+    (let [jobs (sut/nats-lib mt/test-ctx)]
+     (testing "has test job"
+       (is (= 1 (count jobs))))
+
+     (testing "adds nats params to test job env"
+       (is (= "test-url"
+              (-> jobs
+                  first
+                  m/env
+                  (get "NATS_URL"))))))))

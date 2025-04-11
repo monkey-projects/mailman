@@ -1,0 +1,2 @@
+{:nats-url "nats://nats.mnq.fr-par.scaleway.com:4222"
+ :nats-creds "/home/wneirynck/.config/nats/creds/sw"}

@@ -1,27 +1,30 @@
-{:deps {com.monkeyprojects/mailman-core {:mvn/version "0.2.5"}
-        manifold/manifold {:mvn/version "0.4.3"}}
+{:deps {com.monkeyprojects/nats-async {:mvn/version "1.3.0-SNAPSHOT"}
+        com.monkeyprojects/mailman-core {:mvn/version "0.2.5"}}
 
  :aliases
  {:dev
-  {:extra-paths ["env/dev"]
+  {:extra-paths ["dev-resources" "env/dev"]
    :extra-deps {ch.qos.logback/logback-classic {:mvn/version "1.5.18"}}
    :override-deps {com.monkeyprojects/mailman-core {:local/root "../core"}}}
 
   :test
   ;; clj -X:test
-  {:extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1"}}
+  {:extra-paths ["test"]
+   :extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1"}
+                yogthos/config {:mvn/version "1.2.1"}}
    :exec-fn monkey.test/all}
 
   :junit
   ;; clj -X:test:junit
-  {:exec-fn monkey.test/junit}
+  {:extra-deps {org.slf4j/slf4j-nop {:mvn/version "2.1.0-alpha1"}}
+   :exec-fn monkey.test/junit}
 
   :jar
   ;; clj -X:jar
   {:extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1"}}
    :exec-fn monkey.build/jar
-   :exec-args {:jar "target/mailman-manifold.jar"
-               :lib com.monkeyprojects/mailman-manifold
+   :exec-args {:jar "target/mailman-jms.jar"
+               :lib com.monkeyprojects/mailman-jms
                :pom-data [[:licenses
                            [:license
                             [:name "GPL v3"]
