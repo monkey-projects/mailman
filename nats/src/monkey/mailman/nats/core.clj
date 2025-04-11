@@ -48,7 +48,7 @@
   mc/EventReceiver
   (poll-events [this n]
     (letfn [(make-poller []
-              (let [p (nats/subscribe nats (:subject config))]
+              (let [p (nats/subscribe nats (:subject config) (select-keys config [:queue]))]
                 (set-poller state p)
                 p))
             (take-next [p]
@@ -59,8 +59,8 @@
         (->> (repeatedly n #(take-next p))
              (take-while some?)))))
 
-  (add-listener [this {:keys [subject handler]}]
-    (let [s (nats/subscribe nats subject)
+  (add-listener [this {:keys [subject handler] :as opts}]
+    (let [s (nats/subscribe nats subject (select-keys opts [:queue]))
           l (->NatsListener (random-uuid) s handler)]
       (ms/consume (fn [evt]
                     (mu/invoke-and-repost evt this [l]))

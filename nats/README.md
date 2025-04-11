@@ -52,6 +52,19 @@ sending and receiving events:
 (.close broker)
 ```
 
+## Queues
+
+NATS also supports [queue groups](https://docs.nats.io/nats-concepts/core-nats/queue).
+These allow multiple subscribers on the same subject, but still make sure only one of
+them receives each message.  This is useful for load balancing.  In order to subscribe
+using a queue group, specify `:queue` in the handler, like this:
+
+```clojure
+(mc/add-listener broker {:subject "test.subject"
+                         :handler my-handler
+			 :queue "my-queue"})
+```
+
 ## License
 
 Copyright (c) 2025 by [Monkey Projects BV](https://www.monkey-projects.be)

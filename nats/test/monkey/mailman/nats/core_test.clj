@@ -13,6 +13,17 @@
       (fs/exists? creds) (assoc :credential-path creds)
       (and (some? creds) (not (fs/exists? creds))) (assoc :static-creds creds))))
 
+(defn- wait-until [pred timeout]
+  (let [start (System/currentTimeMillis)]
+    (loop [] 
+      (if-let [p (pred)]
+        p
+        (if (> (System/currentTimeMillis) (+ start timeout))
+          ::timeout
+          (do
+            (Thread/sleep 100)
+            (recur)))))))
+
 (deftest nats-broker
   (let [nats (->  {:urls [(:nats-url cc/env)]
                    :secure? true}
@@ -67,6 +78,40 @@
                                             :subject "test.mailman.first"}])))
         (is (= "reply" (-> (deref recv 1000 :timeout)
                            :message)))))
+
+    (testing "applies queue groups"
+      (let [queue "test-queue"
+            subj "test.mailman.queue"
+            recv (atom {})
+            make-listener (fn [id]
+                            (fn [msg]
+                              (swap! recv update id (fnil conj []) msg)
+                              nil))
+            listeners (->> [:a :b]
+                           (map make-listener)
+                           (map (fn [l]
+                                  (mc/add-listener broker {:subject subj
+                                                           :queue queue
+                                                           :handler l})))
+                           (doall))
+            n 10]
+        (is (= n (->> (range n)
+                      (map (fn [i]
+                             {:subject subj
+                              :type ::test-event
+                              :idx i}))
+                      (mc/post-events broker)
+                      (count))))
+        (is (not (= ::timeout (wait-until #(<= n (count (flatten (vals @recv)))) 10000))))
+        (let [all (->> @recv
+                       vals
+                       flatten
+                       (map :idx))]
+          (is (= (count all)
+                 (-> all
+                     (distinct)
+                     (count)))
+              "each event should be handled only once"))))
 
     (is (nil? (.close broker)))
     (is (nil? (.close nats)))))
