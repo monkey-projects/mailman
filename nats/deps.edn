@@ -1,5 +1,5 @@
-{:deps {com.monkeyprojects/nats-async {:mvn/version "1.3.0-SNAPSHOT"}
-        com.monkeyprojects/mailman-core {:mvn/version "0.2.5"}}
+{:deps {com.monkeyprojects/nats-async {:mvn/version "1.3.0"}
+        com.monkeyprojects/mailman-core {:mvn/version "0.2.6"}}
 
  :aliases
  {:dev
