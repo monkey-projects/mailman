@@ -2,10 +2,12 @@
 
 This is a [Mailman](../README.md) implementation that uses [NATS](https://nats.io) for
 event posting and receiving.  See the NATS documentation for more details on how it works.
-This library uses the [clj-nats-async](https://github.com/monkey-projects/clj-nats-async)
+This library uses the [Monkey Project Nats](https://github.com/monkey-projects/nats)
 that in turn uses the [Java Nats library](https://github.com/nats-io/nats.java).
 
 ## Usage
+
+[![Clojars Project](https://img.shields.io/clojars/v/com.monkeyprojects/mailman-nats.svg)](https://clojars.org/com.monkeyprojects/mailman-nats)
 
 First include the lib in your project:
 ```clojure

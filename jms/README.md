@@ -6,6 +6,8 @@ while connecting to a JMS broker, such as [Apache Artemis](https://activemq.apac
 
 ## Usage
 
+[![Clojars Project](https://img.shields.io/clojars/v/com.monkeyprojects/mailman-jms.svg)](https://clojars.org/com.monkeyprojects/mailman-jms)
+
 Add the lib to your dependencies:
 
 ```clojure
