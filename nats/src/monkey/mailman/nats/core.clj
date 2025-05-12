@@ -1,9 +1,9 @@
 (ns monkey.mailman.nats.core
-  (:require [clj-nats-async.core :as nats]
-            [manifold.stream :as ms]
+  (:require [manifold.stream :as ms]
             [monkey.mailman
              [core :as mc]
-             [utils :as mu]]))
+             [utils :as mu]]
+            [monkey.nats.core :as nc]))
 
 (deftype State [state])
 
@@ -19,23 +19,33 @@
                             (ms/close! poller))
                           (dissoc s :poller))))
 
+(defn- register-subscription [state id s]
+  (swap! (.state state) assoc-in [:subscriptions id] s))
+
+(defn- unregister-subscription [state id]
+  (when-let [s (get-in @(.state state) [:subscriptions id])]
+    (.unsubscribe s)
+    (swap! (.state state) update :subscriptions dissoc id)))
+
 (defn- publish [nats subj evt]
-  (nats/publish nats subj evt)
+  (nc/publish nats subj evt {})
   evt)
 
-(defrecord NatsListener [id stream handler]
+(defrecord NatsListener [id state handler]
   mc/Listener
   (invoke-listener [this evt]
-    (handler (nats/msg-body evt)))
+    (handler evt))
 
   (unregister-listener [this]
-    (ms/close! stream)))
+    (unregister-subscription state id)))
 
 (defn- get-subject [broker evt]
   (let [{sm :subject-mapper s :subject} (:config broker)]
     (or (:subject evt)
         (when sm (sm evt))
         s)))
+
+(def default-subscriber-opts {:deserializer nc/from-edn})
 
 (defrecord NatsBroker [nats config state]
   mc/EventPoster
@@ -47,7 +57,7 @@
   
   mc/EventReceiver
   (poll-events [this n]
-    (letfn [(make-poller []
+    #_(letfn [(make-poller []
               (let [p (nats/subscribe nats (:subject config) (select-keys config [:queue]))]
                 (set-poller state p)
                 p))
@@ -60,11 +70,14 @@
              (take-while some?)))))
 
   (add-listener [this {:keys [subject handler] :as opts}]
-    (let [s (nats/subscribe nats subject (select-keys opts [:queue]))
-          l (->NatsListener (random-uuid) s handler)]
-      (ms/consume (fn [evt]
-                    (mu/invoke-and-repost evt this [l]))
-                  s)
+    (let [l (->NatsListener (random-uuid) state handler)
+          sub (nc/subscribe nats
+                            subject
+                            (fn [evt]
+                              (mu/invoke-and-repost evt this [l]))
+                            (merge default-subscriber-opts
+                                   (select-keys opts [:queue :deserializer])))]
+      (register-subscription state (:id l) sub)
       l))
 
   java.lang.AutoCloseable
@@ -75,5 +88,5 @@
 (defn make-broker [nats conf]
   (->NatsBroker nats conf (->State (atom {}))))
 
-(def connect "Just a shortcut to the nats `create-nats` function"
-  nats/create-nats)
+(def connect "Just a shortcut to the nats `make-connection` function"
+  nc/make-connection)

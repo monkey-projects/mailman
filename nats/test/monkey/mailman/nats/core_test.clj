@@ -1,7 +1,6 @@
 (ns monkey.mailman.nats.core-test
   (:require [clojure.test :refer [deftest testing is]]
             [babashka.fs :as fs]
-            [clj-nats-async.core :as nats]
             [config.core :as cc]
             [manifold.deferred :as md]
             [monkey.mailman.core :as mc]
@@ -47,9 +46,9 @@
           (is (= [evt] (mc/poll-events broker 1)))))
 
     (testing "can listen to events on subject"
-      (let [recv (md/deferred)
+      (let [recv (promise)
             handler (fn [evt]
-                      (md/success! recv evt)
+                      (deliver recv evt)
                       nil)
             subject "test.mailman.events"
             l (mc/add-listener broker {:subject subject
