@@ -3,7 +3,8 @@
             [babashka.fs :as fs]
             [config.core :as cc]
             [monkey.mailman.core :as mc]
-            [monkey.mailman.nats.core :as sut]))
+            [monkey.mailman.nats.core :as sut]
+            [monkey.nats.jetstream.mgmt :as jsm]))
 
 (defn- add-creds [conf]
   (let [creds (:nats-creds cc/env)]
@@ -35,14 +36,46 @@
     (testing "broker is event receiver"
       (is (satisfies? mc/EventReceiver broker)))
 
-    (let [evt {:type ::test
-               :message "test event"}]
-      (testing "can post to subject"
-        (is (= [evt] (mc/post-events broker [evt]))))
-      
-      #_(testing "can poll events from subject"
-          ;; FIXME Need jetstream for this
-          (is (= [evt] (mc/poll-events broker 1)))))
+    (testing "with stream"
+      (let [evt {:type ::test
+                 :message "test event"}
+            mgmt (jsm/make-mgmt nats)
+            stream-id "mailman-poller"
+            consumer-id "test-consumer"
+            subject "test.mailman.poller"
+            stream (jsm/add-stream mgmt {:name stream-id
+                                         :storage-type :file
+                                         :subjects [subject]})
+            broker (sut/make-broker nats {:stream stream-id
+                                          :consumer consumer-id
+                                          :subject subject})]
+        (is (some? (jsm/make-consumer mgmt stream {:durable consumer-id
+                                                   :ack-policy :none
+                                                   :filter-subjects [subject]})))
+        
+        (testing "receives events by listener"
+          ;; Post event before setting up the receiver to test persistence
+          (is (some? (mc/post-events broker [evt])))
+          (let [recv (atom [])
+                handler (fn [evt]
+                          (swap! recv conj evt)
+                          nil)
+                l (mc/add-listener broker {:stream stream-id
+                                           :consumer consumer-id
+                                           :subject subject
+                                           :handler handler})]
+            (is (some? l))
+            (is (not= ::timeout (wait-until #(not-empty @recv) 1000)))
+            (is (= [evt] @recv))
+            (is (true? (mc/unregister-listener l)))))
+        
+        (testing "can post to subject"
+          (is (= [evt] (mc/post-events broker [evt]))))
+
+        (testing "can poll events from subject"
+          (is (= [evt] (mc/poll-events broker 1))))
+
+        (is (true? (jsm/delete-stream mgmt stream)))))
 
     (testing "can listen to events on subject"
       (let [recv (promise)

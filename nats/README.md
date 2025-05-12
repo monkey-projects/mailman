@@ -65,6 +65,31 @@ using a queue group, specify `:queue` in the handler, like this:
 			 :queue "my-queue"})
 ```
 
+## JetStream
+
+[JetStream](https://docs.nats.io/nats-concepts/jetstream) is a kind of persistence layer
+on top of Nats messaging.  It allows listeners to retrieve messages that were sent when
+they were offline, among other things.  Mailman also supports this.  To enable JetStream
+consumption, you have to configure a `stream` and `consumer`.  Make sure you have
+previously created this stream and consumer using Nats management.  The stream id
+is used to capture posted events, while the consumer is used to pull them from the
+storage layer.  In Mailman, consumers are always durable, but you can configure
+other settings using the `consumer-opts` property.
+
+```clojure
+;; Stream and consumer can be configured on broker or listener level.
+(def broker (mn/make-broker nats {:stream "my-stream"}))
+
+(def l (mn/add-listener broker {:consumer "my-consumer" :handler println}))
+```
+
+The above example will create a JetStream consumer that receives messages from
+the stream `my-stream`, with durable consumer id `my-consumer`.  Note that you
+cannot specify a subject at this level, since this has already been configured
+when creating the stream and the consumer.  See the [Nats
+documentation](https://docs.nats.io/nats-concepts/jetstream/streams) for more
+details on this.
+
 ## License
 
 Copyright (c) 2025 by [Monkey Projects BV](https://www.monkey-projects.be)
