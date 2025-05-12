@@ -2,7 +2,6 @@
   (:require [clojure.test :refer [deftest testing is]]
             [babashka.fs :as fs]
             [config.core :as cc]
-            [manifold.deferred :as md]
             [monkey.mailman.core :as mc]
             [monkey.mailman.nats.core :as sut]))
 
@@ -61,9 +60,9 @@
         (is (= evt (deref recv 1000 :timeout)))))
 
     (testing "re-posts results from handlers"
-      (let [recv (md/deferred)
+      (let [recv (promise)
             handler (fn [evt]
-                      (md/success! recv evt)
+                      (deliver recv evt)
                       nil)]
         (is (some? (mc/add-listener broker {:subject "test.mailman.first"
                                             :handler (fn [evt]

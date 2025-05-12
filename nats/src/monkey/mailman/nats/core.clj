@@ -1,6 +1,5 @@
 (ns monkey.mailman.nats.core
-  (:require [manifold.stream :as ms]
-            [monkey.mailman
+  (:require [monkey.mailman
              [core :as mc]
              [utils :as mu]]
             [monkey.nats.core :as nc]))
@@ -14,7 +13,7 @@
   (:poller @(.state state)))
 
 (defn- close-poller [state]
-  (swap! (.state state) (fn [{:keys [poller] :as s}]
+  #_(swap! (.state state) (fn [{:keys [poller] :as s}]
                           (when poller
                             (ms/close! poller))
                           (dissoc s :poller))))
