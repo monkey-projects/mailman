@@ -4,6 +4,7 @@
             [config.core :as cc]
             [monkey.mailman.core :as mc]
             [monkey.mailman.nats.core :as sut]
+            [monkey.nats.core :as nc]
             [monkey.nats.jetstream.mgmt :as jsm]))
 
 (defn- add-creds [conf]
@@ -75,6 +76,7 @@
         (testing "can poll events from subject"
           (is (= [evt] (mc/poll-events broker 1))))
 
+        (is (nil? (.close broker)))
         (is (true? (jsm/delete-stream mgmt stream)))))
 
     (testing "can listen to events on subject"
@@ -93,24 +95,27 @@
         (is (= evt (deref recv 1000 :timeout)))))
 
     (testing "re-posts results from handlers"
-      (let [recv (promise)
-            handler (fn [evt]
-                      (deliver recv evt)
-                      nil)]
-        (is (some? (mc/add-listener broker {:subject "test.mailman.first"
-                                            :handler (fn [evt]
-                                                       [{:result [{:type ::test
-                                                                   :message "reply"
-                                                                   :subject "test.mailman.second"}]}])})))
-        (is (some? (mc/add-listener broker {:subject "test.mailman.second"
-                                            :handler handler})))
-        (is (some? (mc/post-events broker [{:type ::test
-                                            :message "first event"
-                                            :subject "test.mailman.first"}])))
-        (is (= "reply" (-> (deref recv 1000 :timeout)
-                           :message)))))
+      (let [recv (promise)]
+        (is (some? (mc/add-listener broker
+                                    {:subject "test.mailman.first"
+                                     :handler (fn [evt]
+                                                [{:result [{:type ::test
+                                                            :message (str "reply to " (:message evt))
+                                                            :subject "test.mailman.second"}]}])})))
+        (is (some? (mc/add-listener broker
+                                    {:subject "test.mailman.second"
+                                     :handler (fn [evt]
+                                                (deliver recv evt)
+                                                nil)})))
+        (is (some? (mc/post-events broker
+                                   [{:type ::test
+                                     :message "first event"
+                                     :subject "test.mailman.first"}])))
+        (is (= "reply to first event"
+               (-> (deref recv 1000 :timeout)
+                   :message)))))
 
-    (testing "applies queue groups"
+    (testing "invokes each listener per event"
       (let [queue "test-queue"
             subj "test.mailman.queue"
             recv (atom {})
@@ -138,11 +143,18 @@
                        vals
                        flatten
                        (map :idx))]
-          (is (= (count all)
-                 (-> all
-                     (distinct)
-                     (count)))
-              "each event should be handled only once"))))
+          (is (= 20 (count all))
+              "each event should be handled twice"))))
+
+    (testing "passes queue to subscription"
+      (let [opts (atom nil)]
+        (with-redefs [nc/subscribe (fn [_ _ _ o]
+                                     (reset! opts o)
+                                     ::test-sub)]
+          (is (some? (mc/add-listener broker {:subject "test.subject"
+                                              :queue "test-queue"
+                                              :handler (constantly nil)})))
+          (is (= "test-queue" (:queue @opts))))))
 
     (is (nil? (.close broker)))
     (is (nil? (.close nats)))))

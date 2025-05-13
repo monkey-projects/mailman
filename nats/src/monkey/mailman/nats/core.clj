@@ -3,70 +3,10 @@
             [monkey.mailman
              [core :as mc]
              [utils :as mu]]
+            [monkey.mailman.nats.state :as s]
             [monkey.nats
              [core :as nc]
              [jetstream :as js]]))
-
-(deftype State [state])
-
-(defn- from-state [state path]
-  (get-in @(.state state) path))
-
-(defn- update-state [state f & args]
-  (apply swap! (.state state) f args))
-
-(defn- get-jetstream [state conn]
-  (if-let [js (from-state state [:jetstream])]
-    js
-    (let [js (js/make-jetstream conn)]
-      (update-state state assoc :jetstream js)
-      js)))
-
-(defn- get-consumer-ctx [state conn {:keys [stream consumer]}]
-  (if-let [ctx (from-state state [:consumer-ctx stream consumer])]
-    ctx
-    (let [js (get-jetstream state conn)
-          ctx (js/consumer-ctx js stream consumer)]
-      (log/debug "Creating consumer context for" stream consumer)
-      (update-state state assoc-in [:consumer-ctx stream consumer] ctx)
-      ctx)))
-
-(defn- set-fetcher [state fetcher]
-  (update-state state assoc :fetcher fetcher))
-
-(defn- get-fetcher [state conn conf]
-  (if-let [f (from-state state [:fetcher])]
-    f
-    (let [ctx (get-consumer-ctx state conn conf)
-          f (js/fetch ctx (-> (select-keys conf [:deserializer])
-                              (merge (:poll-opts conf))))]
-      (set-fetcher state f)
-      f)))
-
-(defn- close-fetcher [state]
-  (swap! (.state state) (fn [{:keys [fetcher] :as s}]
-                          (when fetcher
-                            (.close fetcher))
-                          (dissoc s :fetcher))))
-
-(defn- register-subscription [state id s]
-  (update-state state assoc-in [:subscriptions id] s))
-
-(defn- unregister-subscription [state id]
-  (when-let [s (from-state state [:subscriptions id])]
-    (nc/unsubscribe s)
-    (update-state state update :subscriptions dissoc id)
-    true))
-
-(defn- register-consumer [state id s]
-  (update-state state assoc-in [:consumers id] s))
-
-(defn- unregister-consumer [state id]
-  (when-let [c (from-state state [:consumers id])]
-    (.stop c)
-    (.close c)
-    (update-state state update :consumers dissoc id)
-    true))
 
 (defn- publish [nats subj evt]
   (log/trace "Publishing to:" subj "-" evt)
@@ -87,20 +27,24 @@
     (handler evt))
 
   (unregister-listener [this]
-    (unregister-subscription state id)))
+    (s/unsubscribe state id)))
 
 (defn- subscribe
-  "Sets up a subscription listener, without persistence."
+  "Sets up a subscription listener, without persistence.  If a subscription already
+   exists for the same subject, adds it to the existing subscription listeners."
   [{:keys [nats state] :as broker} {:keys [subject handler] :as opts}]
   (let [l (->SubscriptionListener (random-uuid) state handler)
-        sub (nc/subscribe nats
-                          subject
-                          (fn [evt]
-                            (mu/invoke-and-repost evt broker [l]))
-                          (merge default-subscriber-opts
-                                 (select-keys opts [:queue :deserializer])))]
-    (register-subscription state (:id l) sub)
-    l))
+        sub-opts (-> default-subscriber-opts
+                     (merge (select-keys opts [:queue :deserializer]))
+                     (assoc :subject subject))
+        make-sub (fn [get-list]
+                   (log/debug "Registering ephemeral subscription:" opts)
+                   (nc/subscribe nats
+                                 subject
+                                 (fn [evt]
+                                   (mu/invoke-and-repost evt broker (get-list)))
+                                 sub-opts))]
+    (s/subscribe state l sub-opts make-sub)))
 
 (defrecord ConsumerListener [id state handler]
   mc/Listener
@@ -108,24 +52,26 @@
     (handler evt))
 
   (unregister-listener [this]
-    (unregister-consumer state id)))
+    (s/unregister-consumer state id)))
 
 (defn- consume
   "Sets up a consumer listener, using JetStream.  This is when a stream and a
    consumer is configured when adding a listener."
   [{:keys [state] :as broker} opts]
+  (log/debug "Registering jetstream consumption:" opts)
   (let [l (->ConsumerListener (random-uuid) state (:handler opts))
-        ctx (get-consumer-ctx state (:nats broker) opts)
+        ctx (s/get-consumer-ctx state (:nats broker) opts)
         conf (merge default-subscriber-opts
                     (select-keys opts [:deserializer])
                     (:consumer-opts opts))
-        co (js/consume ctx
-                       (fn [evt]
-                         (log/trace "Received on stream" (select-keys opts [:stream :consumer]) ":" evt)
-                         (mu/invoke-and-repost evt broker [l]))
-                       conf)]
-    (register-consumer state (:id l) co)
-    l))
+        make-cons (fn [get-list]
+                    (js/consume
+                     ctx
+                     (fn [evt]
+                       (log/trace "Received on stream" (select-keys opts [:stream :consumer]) ":" evt)
+                       (mu/invoke-and-repost evt broker (get-list)))
+                     conf))]
+    (s/register-consumer state l conf make-cons)))
 
 (defrecord NatsBroker [nats config state]
   mc/EventPoster
@@ -138,7 +84,7 @@
   
   mc/EventReceiver
   (poll-events [this n]
-    (let [fetcher (get-fetcher state nats (merge default-subscriber-opts config))]
+    (let [fetcher (s/get-fetcher state nats (merge default-subscriber-opts config))]
       (repeatedly n fetcher)))
 
   (add-listener [this opts]
@@ -150,11 +96,11 @@
 
   java.lang.AutoCloseable
   (close [this]
-    (close-fetcher state)
+    (s/close-fetcher state)
     nil))
 
 (defn make-broker [nats conf]
-  (->NatsBroker nats conf (->State (atom {}))))
+  (->NatsBroker nats conf (s/make-state)))
 
 (def connect "Just a shortcut to the nats `make-connection` function"
   nc/make-connection)

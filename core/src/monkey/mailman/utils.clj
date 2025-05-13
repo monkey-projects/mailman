@@ -8,6 +8,7 @@
   [evt broker listeners]
   (doseq [l listeners]
     (try
+      (log/trace "Invoking listener:" l)
       (let [r (->> (c/invoke-listener l evt)
                    (map :result)
                    (flatten)
