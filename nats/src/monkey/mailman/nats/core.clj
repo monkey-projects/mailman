@@ -54,7 +54,7 @@
 
 (defn- unregister-subscription [state id]
   (when-let [s (from-state state [:subscriptions id])]
-    (.unsubscribe s)
+    (nc/unsubscribe s)
     (update-state state update :subscriptions dissoc id)
     true))
 
