@@ -1,6 +1,7 @@
 (ns monkey.mailman.nats.state
   "Broker state management functionality"
-  (:require [monkey.nats
+  (:require [clojure.tools.logging :as log]
+            [monkey.nats
              [core :as nc]
              [jetstream :as js]]))
 
@@ -51,8 +52,11 @@
 (defn get-fetcher [state conn conf]
   (let [ctx (get-consumer-ctx state conn conf)]
     (get-or-add state [:fetcher]
-                #(js/fetch ctx (-> (select-keys conf [:deserializer])
-                                   (merge (:poll-opts conf)))))))
+                (fn []
+                  (let [fetch-opts (-> (select-keys conf [:deserializer])
+                                       (merge (:poll-opts conf)))]
+                    (log/debug "Creating fetcher with options:" fetch-opts)
+                    (js/fetch ctx fetch-opts))))))
 
 (defn close-fetcher [state]
   (update-state

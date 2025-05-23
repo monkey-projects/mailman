@@ -1,4 +1,4 @@
-{:deps {com.monkeyprojects/nats {:mvn/version "0.1.0-SNAPSHOT"}
+{:deps {com.monkeyprojects/nats {:mvn/version "0.2.0-SNAPSHOT"}
         com.monkeyprojects/mailman-core {:mvn/version "0.2.7-SNAPSHOT"}}
 
  :aliases
