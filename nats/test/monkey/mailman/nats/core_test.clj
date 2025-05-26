@@ -50,7 +50,7 @@
             broker (sut/make-broker nats {:stream stream-id
                                           :consumer consumer-id
                                           :subject subject})]
-        (is (some? (jsm/make-consumer mgmt stream {:durable consumer-id
+        (is (some? (jsm/make-consumer mgmt stream {:name consumer-id
                                                    :ack-policy :none
                                                    :filter-subjects [subject]})))
         
