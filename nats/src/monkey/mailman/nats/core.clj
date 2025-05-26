@@ -84,8 +84,11 @@
   
   mc/EventReceiver
   (poll-events [this n]
-    (let [fetcher (s/get-fetcher state nats (merge default-subscriber-opts config))]
-      (repeatedly n fetcher)))
+    (let [ctx (s/get-consumer-ctx state config)]
+      (->> (repeatedly n #(js/take-next ctx (-> default-subscriber-opts
+                                                (merge (:poll-opts config))
+                                                (merge (select-keys config [:deserializer])))))
+           (take-while some?))))
 
   (add-listener [this opts]
     (let [stream (or (:stream opts) (:stream config))
