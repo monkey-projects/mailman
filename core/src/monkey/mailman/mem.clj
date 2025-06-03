@@ -54,8 +54,8 @@
             v))
         res)))
 
-  (add-listener [this listener]
-    (let [l (->Listener listener (partial unregister state))]
+  (add-listener [this {:keys [handler]}]
+    (let [l (->Listener handler (partial unregister state))]
       (swap! state update :listeners (fnil conj []) l)
       (maybe-start-thread! this state)
       l)))

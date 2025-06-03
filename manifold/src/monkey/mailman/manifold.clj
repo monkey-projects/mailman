@@ -56,8 +56,8 @@
          (take n)
          (take-while some?)))
 
-  (add-listener [this l]
-    (let [w (->Listener (random-uuid) l listeners)]
+  (add-listener [this {:keys [handler]}]
+    (let [w (->Listener (random-uuid) handler listeners)]
       ;; Start broker when first listener is registered
       ;; Note that this won't have any effect if it has been stopped previously, since the
       ;; stream will have been closed then.

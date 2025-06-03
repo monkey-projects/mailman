@@ -6,7 +6,7 @@
 
 (deftest memory-events
   (testing "posted events can be polled"
-    (let [e (sut/make-memory-events)
+    (let [e (sut/make-memory-broker)
           evt {:type ::test-evt}]
       (is (= [evt] (c/post-events e [evt])))
       (is (= 1 (count (:queue e)))
@@ -14,11 +14,11 @@
       (is (= evt (c/poll-next e)))))
 
   (testing "listeners"
-    (let [e (sut/make-memory-events)
+    (let [e (sut/make-memory-broker)
           recv (promise)
-          l (c/add-listener e (fn [evt]
-                                (deliver recv evt)
-                                nil))]
+          l (c/add-listener e {:handler (fn [evt]
+                                          (deliver recv evt)
+                                          nil)})]
       (testing "can register"
         (is (some? l)))
       
@@ -31,7 +31,7 @@
         (is (true? (c/unregister-listener l))))))
 
   (testing "re-posts events in listener return values"
-    (let [e (sut/make-memory-events)
+    (let [e (sut/make-memory-broker)
           recv (promise)
           handle-first (fn [{:keys [event]}]
                          {:type ::second
@@ -41,6 +41,6 @@
                           nil)
           router (c/router {::first [handle-first]
                             ::second [handle-second]})
-          l (c/add-listener e router)]
+          l (c/add-listener e {:handler router})]
       (is (some? (c/post-events e [{:type ::first}])))
       (is (= ::second (-> (deref recv 1000 :timeout) :type))))))

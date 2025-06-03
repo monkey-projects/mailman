@@ -15,7 +15,8 @@
      pending events.")
 
   (add-listener [this listener]
-    "Registers a listener to receive incoming events"))
+    "Registers a listener to receive incoming events.  The listener is a map that
+     containers at least a `handler` function."))
 
 (defprotocol Listener
   "A listener is returned when adding a listener to a broker.  It's usually broker

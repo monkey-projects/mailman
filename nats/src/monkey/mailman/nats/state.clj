@@ -85,6 +85,8 @@
   (get-path state (sub-path opts)))
 
 (defn- register-listener [state path listener make-sub]
+  ;; If a subscription already exists for the given path (i.e. subject, queue)
+  ;; then re-use it, otherwise create a new one.
   (if (:sub (get-path state path))
     (update-path state (conj path :listeners) assoc (:id listener) listener)
     (let [sub (make-sub (comp vals :listeners #(get-path state path)))]

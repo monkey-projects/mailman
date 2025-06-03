@@ -15,9 +15,10 @@
         (is (= evt (mc/poll-next broker)))))
 
     (let [recv (ms/stream 10)
-          l (mc/add-listener broker (fn [evt]
-                                      (ms/put! recv evt)
-                                      nil))
+          l (mc/add-listener broker {:handler
+                                     (fn [evt]
+                                       (ms/put! recv evt)
+                                       nil)})
           evt {:type ::for-listener}]
       (is (some? l))
       
@@ -42,7 +43,7 @@
                                          (deliver recv (:event ctx))
                                          nil)}]]]
           router (mc/make-router routes)
-          l (mc/add-listener broker router)]
+          l (mc/add-listener broker {:handler router})]
       (is (some? (mc/post-events broker [{:type ::first}])))
       (is (= ::second (-> (deref recv 100 :timeout)
                           :type))))))
