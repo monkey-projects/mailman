@@ -203,7 +203,9 @@ of events to post.
 
 It's counterpart is `EventReceiver` which allows to actively poll for events, using
 `pull-events` or to register a listener using `add-listener`.  The listener is invoked
-for each received message, and is a 1-arity function, presumably created using `router`.
+for each received message, and contains at least a 1-arity function in the `:handler`
+property, presumably created using `router`.  Additional options can be provided,
+depending on the broker implementation.
 
 Mailman provides a default in-memory broker implementation that implements both of these
 protocols.
@@ -232,7 +234,7 @@ a listener instead, using `add-listener`.
 
 ```clojure
 ;; Register the previously created router as a listener
-(def l (mm/add-listener broker router))
+(def l (mm/add-listener broker {:handler router}))
 
 ;; You can unregister the listener as well
 (mm/unregister-listener l)
