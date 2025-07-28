@@ -2,7 +2,30 @@
 
 A Clojure library that provides a simple way to handle events in a generic manner.
 The goal is to be able to declare event handling similar to HTTP routing libraries,
-such as [reitit](https://github.com/metosin/reitit).
+such as [reitit](https://github.com/metosin/reitit).  This in turn makes it possible
+to build functional event driven applications.
+
+### Basic Example
+
+```clojure
+(require '[mailman.core :as mc])
+
+(defn handle-event
+  "Naive event handler"
+  [ctx]
+  {:type ::output-event
+   :message (format "Handled message %s, this is the output" (get-in ctx [:event :message]))})
+
+(def routes
+  "Declares how incoming events should be sent to handlers"
+  [[::input-event [{:handler handle-event}]]])
+
+;; Create router function that handles events
+(def router (mc/router routes))
+
+;; Register the router as a listener to the broker
+(mc/add-listener broker router)
+```
 
 The core library is implementation agnostic, but it provides some sensible defaults
 and an in-memory implementation of a simple event broker, meant for development and

@@ -26,6 +26,8 @@
                            [:license
                             [:name "GPL v3"]
                             [:url "https://www.gnu.org/licenses/gpl-3.0.en.html#license-text"]]]]
+               :scm
+               {:url "https://github.com/monkey-projects/mailman"}
                :version [[:env "LIB_VERSION"] "0.3.1-SNAPSHOT"]}}
 
   :install
