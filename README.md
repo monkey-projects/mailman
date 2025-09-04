@@ -12,7 +12,7 @@ Introduction from the talk for London Clojurians:
 ### Basic Example
 
 ```clojure
-(require '[mailman.core :as mc])
+(require '[monkey.mailman.core :as mc])
 
 (defn handle-event
   "Naive event handler"
@@ -70,12 +70,12 @@ You can declare are router function, that takes an event, invokes the matching h
 and returns the results.
 
 ```clojure
-(require '[monkey.mailman.core :as mm])
+(require '[monkey.mailman.core :as mc])
 
 (def routes {:event-1 [(constantly ::first)]
              :event-2 [(constantly ::second)]})
 
-(def router (mm/router routes))
+(def router (mc/router routes))
 
 (router {:type :event-1})
 ;; => returns [{:event {:type :event-1} :handler <handler-fn> :result ::first}]
@@ -136,7 +136,7 @@ So in order to create a router with interceptors, you could write something like
   {:my/event-type {:handler my-handler
                    :interceptors [log-events]}})
 
-(def router (mm/router routes {:interceptors [(mm/sanitize-result)]}))
+(def router (mc/router routes {:interceptors [(mm/sanitize-result)]}))
 ```
 
 As shown, you can also provide top-level interceptors in the options map to the router.
@@ -170,7 +170,7 @@ default matcher by specifying the `:matcher` key in the options map when calling
 
 ```clojure
 (defrecord CustomMatcher []
-  mm/RouteMatcher
+  mc/RouteMatcher
   (compile-routes [this routes]
     ;; Prepare routes for the finder
     ...)
@@ -179,7 +179,7 @@ default matcher by specifying the `:matcher` key in the options map when calling
     ;; Actually find handlers in the compiled routes
     ...))
 
-(mm/router routes {:matcher (->CustomMatcher)})
+(mc/router routes {:matcher (->CustomMatcher)})
 ```
 
 ### Invokers
@@ -204,7 +204,7 @@ of the given interceptors replaced.
    :enter (fn [ctx]
             (assoc ctx ::my-result (some-side-effecting-function!)))})
 
-(def router (mm/router [[:test/event [{:handler some-handler
+(def router (mc/router [[:test/event [{:handler some-handler
                                        :interceptors [my-interceptor]}]]]))
 
 ;; Create a new interceptor with the same name but with fake effects
@@ -213,7 +213,7 @@ of the given interceptors replaced.
    :enter (fn [ctx]
             (assoc ctx ::my-result ::fake-result))})
 
-(def test-router (mm/replace-interceptors router [fake-interceptor]))
+(def test-router (mc/replace-interceptors router [fake-interceptor]))
 
 (test-router {:type :test/event})
 ;; => [{:result {::my-result ::fake-result}}]
@@ -243,10 +243,10 @@ protocols.
 (def broker (mb/make-memory-broker))
 
 ;; Post a single event
-(mm/post-events broker [{:type ::test-event :message "This is a test event"}])
+(mc/post-events broker [{:type ::test-event :message "This is a test event"}])
 
 ;; Pull it
-(mm/pull-events broker 1)
+(mc/pull-events broker 1)
 ;; Returns a list holding the previously posted event
 ```
 
@@ -261,10 +261,10 @@ a listener instead, using `add-listener`.
 
 ```clojure
 ;; Register the previously created router as a listener
-(def l (mm/add-listener broker {:handler router}))
+(def l (mc/add-listener broker {:handler router}))
 
 ;; You can unregister the listener as well
-(mm/unregister-listener l)
+(mc/unregister-listener l)
 ```
 
 The listener is also a protocol, called `Listener`, which is again dependent on your
