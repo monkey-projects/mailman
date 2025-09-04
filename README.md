@@ -5,6 +5,9 @@ The goal is to be able to declare event handling similar to HTTP routing librari
 such as [reitit](https://github.com/metosin/reitit).  This in turn makes it possible
 to build functional event driven applications.
 
+Introduction from the talk for London Clojurians:
+<iframe width="560" height="315" src="https://www.youtube.com/embed/9Cr-k6rfhzc?si=omKUqZIWhQXUpupt" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
 ### Basic Example
 
 ```clojure
