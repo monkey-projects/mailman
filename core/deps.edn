@@ -5,12 +5,12 @@
  :aliases
  {:dev
   {:extra-paths ["env/dev" "dev-resources"]
-   :extra-deps {ch.qos.logback/logback-classic {:mvn/version "1.5.18"}
+   :extra-deps {ch.qos.logback/logback-classic {:mvn/version "1.5.20"}
                 org.slf4j/slf4j-api {:mvn/version "2.0.17"}}}
 
   :test
   {:extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1"}
-                ch.qos.logback/logback-classic {:mvn/version "1.5.18"}}
+                ch.qos.logback/logback-classic {:mvn/version "1.5.20"}}
    :exec-fn monkey.test/all}
 
   :watch

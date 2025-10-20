@@ -8,9 +8,9 @@
              [core :as nc]
              [jetstream :as js]]))
 
-(defn- publish [nats subj evt]
+(defn- publish [nats subj evt opts]
   (log/trace "Publishing to:" subj "-" evt)
-  (nc/publish nats subj evt {})
+  (nc/publish nats subj evt opts)
   evt)
 
 (defn- get-subject [broker evt]
@@ -32,10 +32,11 @@
 (defn- subscribe
   "Sets up a subscription listener, without persistence.  If a subscription already
    exists for the same subject, adds it to the existing subscription listeners."
-  [{:keys [nats state] :as broker} {:keys [subject handler] :as opts}]
+  [{:keys [nats state config] :as broker} {:keys [subject handler] :as opts}]
   (let [l (->SubscriptionListener (random-uuid) state handler)
         sub-opts (-> default-subscriber-opts
-                     (merge (select-keys opts [:queue :deserializer]))
+                     (merge (select-keys config [:deserializer])
+                            (select-keys opts [:queue :deserializer]))
                      (assoc :subject subject))
         make-sub (fn [get-list]
                    (log/debug "Registering ephemeral subscription:" opts)
@@ -79,7 +80,7 @@
     (->> evts
          (map (fn [evt]
                 ;; TODO If a stream is configured, publish via jetstream
-                (publish nats (get-subject this evt) evt)))
+                (publish nats (get-subject this evt) evt (select-keys config [:serializer]))))
          (doall)))
   
   mc/EventReceiver

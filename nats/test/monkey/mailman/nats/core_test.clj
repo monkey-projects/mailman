@@ -94,6 +94,33 @@
         (is (some? (mc/post-events broker [evt])))
         (is (= evt (deref recv 1000 :timeout)))))
 
+    (testing "uses custom serializer"
+      (let [recv (promise)
+            handler (fn [evt]
+                      (deliver recv evt)
+                      nil)
+            subject "test.mailman.events-2"
+            broker (sut/make-broker nats
+                                    {:subject subject
+                                     :serializer (constantly (.getBytes "custom-serializer"))
+                                     :deserializer
+                                     (fn [msg]
+                                       (let [r (slurp (.getData msg))]
+                                         (if (= "custom-serializer" r)
+                                           {:type ::ok}
+                                           {:type ::failed
+                                            :contents r})))})
+            l (mc/add-listener broker
+                               {:subject subject
+                                :handler handler})
+            evt {:type ::test
+                 :message "other event"
+                 :subject subject}]
+        (is (satisfies? mc/Listener l))
+        (is (some? (mc/post-events broker [evt])))
+        (is (= {:type ::ok}
+               (deref recv 1000 :timeout)))))
+    
     (testing "re-posts results from handlers"
       (let [recv (promise)]
         (is (some? (mc/add-listener broker
