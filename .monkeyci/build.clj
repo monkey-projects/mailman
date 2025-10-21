@@ -1,7 +1,5 @@
 (ns build
-  (:require [monkey.ci.build
-             [api :as api]
-             [v2 :as m]]
+  (:require [monkey.ci.api :as m]
             [monkey.ci.plugin
              [clj :as clj]
              [github :as gh]]))
@@ -57,7 +55,7 @@
   "Creates jobs for building the nats library.  We can't use the default fn above because
    it needs env vars for testing."
   [ctx]
-  (let [params (-> (api/build-params ctx)
+  (let [params (-> (m/build-params ctx)
                    (select-keys ["NATS_URL" "NATS_CREDS"]))
         jobs (vec ((dependent-lib "nats") ctx))
         test-job (find-test-job jobs)]

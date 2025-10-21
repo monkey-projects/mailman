@@ -1,8 +1,9 @@
 (ns build-test
   (:require [clojure.test :refer [deftest testing is]]
             [build :as sut]
-            [monkey.ci.test :as mt]
-            [monkey.ci.build.v2 :as m]
+            [monkey.ci
+             [api :as m]
+             [test :as mt]]
             [monkey.ci.protocols :as p]))
 
 (deftest build-lib

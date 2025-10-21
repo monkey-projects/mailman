@@ -1,4 +1,4 @@
-{:deps {com.monkeyprojects/mailman-core {:mvn/version "0.3.1-SNAPSHOT"}
+{:deps {com.monkeyprojects/mailman-core {:mvn/version "0.3.1"}
         com.monkeyprojects/monkey-jms {:mvn/version "0.3.2"}}
 
  :aliases
@@ -32,7 +32,7 @@
                             [:url "https://www.gnu.org/licenses/gpl-3.0.en.html#license-text"]]]]
                :scm
                {:url "https://github.com/monkey-projects/mailman"}
-               :version [[:env "LIB_VERSION"] "0.3.1-SNAPSHOT"]}}
+               :version [[:env "LIB_VERSION"] "0.3.1"]}}
 
   :install
   ;; clj -X:jar:install
