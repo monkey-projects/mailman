@@ -76,6 +76,34 @@
         (testing "can poll events from subject"
           (is (= [evt] (mc/poll-events broker 1))))
 
+        (testing "uses custom serializer"
+          (let [recv (promise)
+                handler (fn [evt]
+                          (deliver recv evt)
+                          nil)
+                broker (sut/make-broker nats
+                                        {:subject subject
+                                         :serializer (constantly (.getBytes "custom-serializer"))
+                                         :deserializer
+                                         (fn [msg]
+                                           (let [r (slurp (.getData msg))]
+                                             (if (= "custom-serializer" r)
+                                               {:type ::ok}
+                                               {:type ::failed
+                                                :contents r})))})
+                l (mc/add-listener broker
+                                   {:stream stream-id
+                                    :consumer consumer-id
+                                    :subject subject
+                                    :handler handler})
+                evt {:type ::test
+                     :message "other event"
+                     :subject subject}]
+            (is (satisfies? mc/Listener l))
+            (is (some? (mc/post-events broker [evt])))
+            (is (= {:type ::ok}
+                   (deref recv 1000 :timeout)))))
+
         (is (nil? (.close broker)))
         (is (true? (jsm/delete-stream mgmt stream)))))
 

@@ -58,11 +58,12 @@
 (defn- consume
   "Sets up a consumer listener, using JetStream.  This is when a stream and a
    consumer is configured when adding a listener."
-  [{:keys [state] :as broker} opts]
+  [{:keys [state config] :as broker} opts]
   (log/debug "Registering jetstream consumption:" opts)
   (let [l (->ConsumerListener (random-uuid) state (:handler opts))
         ctx (s/get-consumer-ctx state (:nats broker) opts)
         conf (merge default-subscriber-opts
+                    (select-keys config [:deserializer])
                     (select-keys opts [:deserializer])
                     (:consumer-opts opts))
         make-cons (fn [get-list]
