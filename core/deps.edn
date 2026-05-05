@@ -1,16 +1,16 @@
-{:deps {io.pedestal/pedestal.interceptor {:mvn/version "0.8.0"}
-        org.clojure/tools.logging {:mvn/version "1.3.0"}}
+{:deps {io.pedestal/pedestal.interceptor {:mvn/version "0.8.1"}
+        org.clojure/tools.logging {:mvn/version "1.3.1"}}
  :paths ["src"]
 
  :aliases
  {:dev
   {:extra-paths ["env/dev" "dev-resources"]
-   :extra-deps {ch.qos.logback/logback-classic {:mvn/version "1.5.20"}
+   :extra-deps {ch.qos.logback/logback-classic {:mvn/version "1.5.32"}
                 org.slf4j/slf4j-api {:mvn/version "2.0.17"}}}
 
   :test
   {:extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1"}
-                ch.qos.logback/logback-classic {:mvn/version "1.5.20"}}
+                ch.qos.logback/logback-classic {:mvn/version "1.5.32"}}
    :exec-fn monkey.test/all}
 
   :watch
@@ -30,7 +30,7 @@
                             [:url "https://www.gnu.org/licenses/gpl-3.0.en.html#license-text"]]]]
                :scm
                {:url "https://github.com/monkey-projects/mailman"}
-               :version [[:env "LIB_VERSION"] "0.3.1"]}}
+               :version [[:env "LIB_VERSION"] "0.4.0-SNAPSHOT"]}}
 
   :install
   {:exec-fn monkey.build/jar+install}

@@ -2,28 +2,33 @@
   (:require [clojure.test :refer [deftest testing is]]
             [monkey.mailman.interceptors :as sut]))
 
+(defrecord FakeChain [interceptors]
+  sut/InterceptorChain
+  (execute [this ctx]
+    {:interceptors (:interceptors this)
+     :ctx ctx}))
+
 (deftest handler-interceptor
-  (testing "invokes handler with context, adds result to context"
+  (testing "`leave` invokes handler with context, adds result to context"
     (let [handler (fn [{:keys [event]}]
                     {::test-result event})
           evt {:type ::test-event}
-          res (-> (sut/make-context evt)
-                  (sut/add-interceptors [(sut/handler-interceptor handler)])
-                  (sut/execute))]
+          {:keys [leave] :as i} (sut/handler-interceptor handler)
+          res (leave {:event evt})]
       (is (= evt (:event res)))
       (is (= {::test-result evt} (:result res))))))
 
 (deftest interceptor-handler
   (let [test-interceptor {:enter #(assoc % ::called? true)}
-        h (sut/interceptor-handler [test-interceptor
-                                    (sut/handler-interceptor (constantly ::handled))])]
+        h (sut/interceptor-handler (->FakeChain [test-interceptor]))]
     (testing "returns a fn"
       (is (fn? h)))
 
     (testing "invokes interceptors"
-      (let [r (h {:type ::test-evt})]
-        (is (= ::handled (:result r)))
-        (is (true? (::called? r)))))))
+      (let [evt {:type ::test-evt}
+            r (h evt)]
+        (is (= [test-interceptor] (:interceptors r)))
+        (is (= evt (get-in r [:ctx :event])))))))
 
 (deftest sanitize-result
   (let [i (sut/sanitize-result)

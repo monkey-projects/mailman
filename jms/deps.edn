@@ -1,10 +1,10 @@
-{:deps {com.monkeyprojects/mailman-core {:mvn/version "0.3.1"}
+{:deps {com.monkeyprojects/mailman-core {:mvn/version "0.4.0-SNAPSHOT"}
         com.monkeyprojects/monkey-jms {:mvn/version "0.3.2"}}
 
  :aliases
  {:dev
   {:extra-paths ["dev-resources" "env/dev"]
-   :extra-deps {ch.qos.logback/logback-classic {:mvn/version "1.5.20"}
+   :extra-deps {ch.qos.logback/logback-classic {:mvn/version "1.5.32"}
                 medley/medley {:mvn/version "1.4.0"}}
    :override-deps {com.monkeyprojects/mailman-core {:local/root "../core"}}}
 
@@ -32,7 +32,7 @@
                             [:url "https://www.gnu.org/licenses/gpl-3.0.en.html#license-text"]]]]
                :scm
                {:url "https://github.com/monkey-projects/mailman"}
-               :version [[:env "LIB_VERSION"] "0.3.1"]}}
+               :version [[:env "LIB_VERSION"] "0.4.0-SNAPSHOT"]}}
 
   :install
   ;; clj -X:jar:install

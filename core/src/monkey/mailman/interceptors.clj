@@ -11,20 +11,10 @@
 (defn make-context
   "Creates an initial interceptor context for given event."
   [evt]
-  {:event evt})
+  (assoc empty-context :event evt))
 
-(def execute
-  "Executes the interceptor chain with given context as argument."
-  ic/execute)
-
-(def interceptor
-  "Converts its argument in an interceptor"
-  i/interceptor)
-
-(defn add-interceptors
-  "Adds the given interceptors to the context"
-  [ctx interceptors]
-  (ic/enqueue ctx (map interceptor interceptors)))
+(defprotocol InterceptorChain
+  (execute [chain ctx] "Executes the interceptor chain with given context as argument."))
 
 (defn set-event
   "Sets the event on the context"
@@ -59,10 +49,7 @@
   "Creates an event handler fn that uses the given interceptors as the interceptor
    chain.  Executes the chain with the event set in the context."
   [interceptors]
-  (let [ctx (-> empty-context
-                (add-interceptors interceptors))]
-    (fn [evt]
-      (-> ctx
-          (set-event evt)
-          (execute)))))
+  (fn [evt]
+    (execute interceptors
+             (set-event empty-context evt))))
 

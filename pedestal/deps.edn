@@ -1,30 +1,31 @@
-{:deps {com.monkeyprojects/nats {:mvn/version "0.3.1"}
+{:deps {io.pedestal/pedestal.interceptor {:mvn/version "0.8.1"}
         com.monkeyprojects/mailman-core {:mvn/version "0.4.0-SNAPSHOT"}}
+
+ :paths ["src"]
 
  :aliases
  {:dev
-  {:extra-paths ["dev-resources" "env/dev"]
-   :extra-deps {ch.qos.logback/logback-classic {:mvn/version "1.5.32"}}
+  {:extra-paths ["env/dev" "dev-resources"]
+   :extra-deps {ch.qos.logback/logback-classic {:mvn/version "1.5.32"}
+                org.slf4j/slf4j-api {:mvn/version "2.0.17"}}
    :override-deps {com.monkeyprojects/mailman-core {:local/root "../core"}}}
 
   :test
-  ;; clj -X:test
-  {:extra-paths ["test"]
-   :extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1"}
-                yogthos/config {:mvn/version "1.2.1"}}
+  {:extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1"}
+                ch.qos.logback/logback-classic {:mvn/version "1.5.32"}}
    :exec-fn monkey.test/all}
 
+  :watch
+  {:exec-fn monkey.test/watch}
+
   :junit
-  ;; clj -X:test:junit
-  {:extra-deps {org.slf4j/slf4j-nop {:mvn/version "2.1.0-alpha1"}}
-   :exec-fn monkey.test/junit}
+  {:exec-fn monkey.test/junit}
 
   :jar
-  ;; clj -X:jar
   {:extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1"}}
    :exec-fn monkey.build/jar
-   :exec-args {:jar "target/mailman-nats.jar"
-               :lib com.monkeyprojects/mailman-nats
+   :exec-args {:jar "target/mailman-pedestal.jar"
+               :lib com.monkeyprojects/mailman-pedestal
                :pom-data [[:licenses
                            [:license
                             [:name "GPL v3"]
@@ -34,9 +35,7 @@
                :version [[:env "LIB_VERSION"] "0.4.0-SNAPSHOT"]}}
 
   :install
-  ;; clj -X:jar:install
   {:exec-fn monkey.build/jar+install}
 
   :publish
-  ;; clj -X:jar:publish
   {:exec-fn monkey.build/jar+deploy}}}
