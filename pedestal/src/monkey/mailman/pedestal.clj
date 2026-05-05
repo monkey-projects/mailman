@@ -8,16 +8,9 @@
   "Converts its argument to an interceptor"
   i/interceptor)
 
-(defn add-interceptors
-  "Adds the given interceptors to the context"
-  [ctx interceptors]
-  (ic/enqueue ctx (map ->interceptor interceptors)))
-
-(defrecord PedestalInterceptorChain [interceptors]
-  mmi/InterceptorChain
-  (execute [this ctx]
-    (-> ctx
-        (add-interceptors interceptors)
-        (ic/execute))))
-
-(def interceptor-chain ->PedestalInterceptorChain)
+(defn execute
+  "Interceptor executor that can be passed as an `:executor` to the router"
+  [interceptors ctx]
+  (-> ctx
+      (ic/enqueue (map ->interceptor interceptors))
+      (ic/execute)))

@@ -26,15 +26,19 @@
                           :enter #(assoc % :intercepted? true)}
         h (sut/handler->fn
            (sut/->handler {:handler (constantly ::handled)
-                           :interceptors [test-interceptor]}))]
+                           :interceptors [test-interceptor]})
+           (fn [i ctx]
+             {:interceptors i
+              :ctx ctx}))]
     (testing "returns fn"
       (is (fn? h)))
 
-    (testing "applies interceptors"
-      (is (= {:result ::handled
-              :intercepted? true}
-             (-> (h ::test-event)
-                 (select-keys [:result :intercepted?])))))))
+    (testing "applies interceptors using executor"
+      (let [r (h ::test-event)]
+        (is (= {:event ::test-event}
+               (:ctx r)))
+        (is (= 2 (count (:interceptors r))))
+        (is (= test-interceptor (-> r :interceptors first)))))))
 
 (deftest router
   (let [handled (atom [])

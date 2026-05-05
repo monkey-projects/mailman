@@ -2,12 +2,6 @@
   (:require [clojure.test :refer [deftest testing is]]
             [monkey.mailman.interceptors :as sut]))
 
-(defrecord FakeChain [interceptors]
-  sut/InterceptorChain
-  (execute [this ctx]
-    {:interceptors (:interceptors this)
-     :ctx ctx}))
-
 (deftest handler-interceptor
   (testing "`leave` invokes handler with context, adds result to context"
     (let [handler (fn [{:keys [event]}]
@@ -20,7 +14,10 @@
 
 (deftest interceptor-handler
   (let [test-interceptor {:enter #(assoc % ::called? true)}
-        h (sut/interceptor-handler (->FakeChain [test-interceptor]))]
+        test-exec (fn [i ctx]
+                    {:interceptors i
+                     :ctx ctx})
+        h (sut/interceptor-handler [test-interceptor] test-exec)]
     (testing "returns a fn"
       (is (fn? h)))
 

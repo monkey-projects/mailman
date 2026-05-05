@@ -2,9 +2,7 @@
   "Event handler interceptors.  This uses the Pedestal interceptor library
    under the hood.  Most functions are really just wrappers around Pedestal
    functions."
-  (:require [io.pedestal.interceptor :as i]
-            [io.pedestal.interceptor.chain :as ic]
-            [monkey.mailman.spec :as s]))
+  (:require [monkey.mailman.spec :as s]))
 
 (def empty-context {})
 
@@ -12,9 +10,6 @@
   "Creates an initial interceptor context for given event."
   [evt]
   (assoc empty-context :event evt))
-
-(defprotocol InterceptorChain
-  (execute [chain ctx] "Executes the interceptor chain with given context as argument."))
 
 (defn set-event
   "Sets the event on the context"
@@ -47,9 +42,10 @@
 
 (defn interceptor-handler
   "Creates an event handler fn that uses the given interceptors as the interceptor
-   chain.  Executes the chain with the event set in the context."
-  [interceptors]
+   chain and passes them to the executor, along with the context, that has the event
+   added."
+  [interceptors exec]
   (fn [evt]
-    (execute interceptors
-             (set-event empty-context evt))))
+    (exec interceptors
+          (set-event empty-context evt))))
 

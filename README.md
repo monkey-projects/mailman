@@ -113,9 +113,12 @@ But you can also add interceptors to them.
 
 One of the most useful things in standard HTTP libraries are the interceptors.
 They provide a more flexible way of converting input and output for handlers than
-the standard Ring-style function wrapping.  In *Mailman*, we opted to use the
-interceptors provided by [Pedestal](http://pedestal.io).  Some default interceptors
-have been provided in the `monkey.mailman.interceptors` namespace.
+the standard Ring-style function wrapping.  In *Mailman*, we opted not to be tied
+to a specific implementation, but we did provide implementations for interceptors
+provided by [Pedestal](http://pedestal.io) and [Sieppari](https://github.com/metosin/sieppari).
+In order to use one of the implementations, include the lib in your project.
+
+Some default interceptors have been provided in the `monkey.mailman.interceptors` namespace.
 
 The last interceptor is usually the one that actually invokes the handler function,
 and converts the result.  This is the `handler-interceptor`.  There is also a
@@ -132,16 +135,34 @@ is all done for you by the router.
 
 So in order to create a router with interceptors, you could write something like this:
 ```clojure
+;; Using pedestal interceptor impl in this example, although this is the default
+;; if the lib is provided.
+(require '[monkey.mailman.pedestal :as mmp])
+
 (def routes
   {:my/event-type {:handler my-handler
                    :interceptors [log-events]}})
 
-(def router (mc/router routes {:interceptors [(mm/sanitize-result)]}))
+(def router (mc/router routes {:interceptors [(mm/sanitize-result)]
+                               :executor mmp/execute}))
 ```
 
 As shown, you can also provide top-level interceptors in the options map to the router.
 These are combined with the route-specific interceptors.  The route-specific interceptors
 are appended to the global interceptors, so they have "priority" so to speak.
+
+### Interceptor Executors
+
+You should pass in an `executor`, to tell Mailman how to execute the interceptors.
+For backwards compatibility, it falls back to the Pedestal implementation, but this
+only works if the `mailman-pedestal` lib is added as a dependency.
+
+The executor is a 2-arity function, that takes the list of interceptors and the context,
+and that returns the resulting context.  As stated, we provide an implementation for 
+Pedestal, and one for Sieppari.  The latter is useful if you want a zero-dependency
+implementation, e.g. when using [GraalVM native images](https://www.graalvm.org/latest/reference-manual/native-image/)
+or [Babashka](https://github.com/babashka/babashka).  In order to provide your own
+implementation, just pass in your custom executor function.
 
 ## Customization
 

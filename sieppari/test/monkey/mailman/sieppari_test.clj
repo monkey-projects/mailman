@@ -1,8 +1,8 @@
-(ns monkey.mailman.pedestal-test
+(ns monkey.mailman.sieppari-test
   (:require [clojure.test :refer [deftest testing is]]
             [monkey.mailman
              [interceptors :as mmi]
-             [pedestal :as sut]]))
+             [sieppari :as sut]]))
 
 (deftest execute
   (testing "executes interceptors"

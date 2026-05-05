@@ -61,7 +61,7 @@
         test-job (find-test-job jobs)]
     (replace {test-job (m/env test-job params)} jobs)))
 
-(def dep-libs ["manifold" "jms" "pedestal"])
+(def dep-libs ["manifold" "jms" "pedestal" "sieppari"])
 (def libs (concat ["core" "nats"] dep-libs))
 
 ;; Put jobs in var so we can get them for testing

@@ -52,11 +52,12 @@
     h))
 
 (defn handler->fn
-  "Converts the handler into an invokable function that applies interceptors"
-  [handler]
+  "Converts the handler into an invokable function that applies interceptors, using
+   the specified interceptor executor."
+  [handler executor]
   (-> (:interceptors handler)
       (concat [(i/handler-interceptor (:handler handler))])
-      (i/interceptor-handler)))
+      (i/interceptor-handler executor)))
 
 (defprotocol RouteMatcher
   "Used by the router to find handlers for an incoming event."
@@ -97,13 +98,13 @@
                [])
        (doall)))
 
-(defn- add-global-interceptors [interceptors routes]
+(defn- add-global-interceptors [interceptors exec routes]
   (letfn [(convert [h]
             (cond-> h
               (not-empty interceptors)
               (update :interceptors (comp vec (partial concat interceptors)))
               true
-              (handler->fn)))]
+              (handler->fn exec)))]
     (mapv (fn [[k handlers]]
             [k (map convert handlers)])
           routes)))
@@ -116,6 +117,15 @@
       (when-let [h (find-handlers matcher compiled evt)]
         (invoker h evt)))))
 
+(defn- get-executor [opts]
+  (or (:executor opts)
+      ;; Find the pedestal executor dynamically, for backwards compatibility
+      (some-> (requiring-resolve 'monkey.mailman.pedestal/execute)
+              (var-get))
+      (fn [_ _]
+        (throw (ex-info "No interceptor executor has been found.  Either specify one in the options using `:executor`, or include the fallback mailman pedestal lib."
+                        opts)))))
+
 (defn make-router
   "Creates an event router object.  It can be registered as a listener and it will
    route events according to the route configuration.  The router returns a structure
@@ -125,14 +135,16 @@
    An extra options map can be passed in to override default behaviour:
      - `:matcher`: function that determines the handlers to invoke for an event, defaults to `type-matcher`.
      - `:invoker`: function that performs handler invocation.  By default this is the `sync-invoker`.
-     - `:interceptors`: custom interceptors, prepended to the route-specific interceptors."
+     - `:interceptors`: list of custom interceptors, prepended to the route-specific interceptors.
+     - `:executor`: the interceptor executor to use (see the pedestal and sieppari libs)"
+     
   [routes & [{:keys [interceptors] :as opts}]]
   (let [{:keys [matcher] :as opts} (merge {:matcher type-matcher
                                            :invoker sync-invoker}
                                           opts)
         compiled (->> routes
                       (convert-handlers)
-                      (add-global-interceptors interceptors)
+                      (add-global-interceptors interceptors (get-executor opts))
                       (compile-routes matcher))]
     (->Router routes opts compiled)))
 
