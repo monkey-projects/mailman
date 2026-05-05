@@ -13,6 +13,7 @@
   :test
   {:extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1"}
                 ch.qos.logback/logback-classic {:mvn/version "1.5.32"}}
+   :override-deps {com.monkeyprojects/mailman-core {:local/root "../core"}}
    :exec-fn monkey.test/all}
 
   :watch
