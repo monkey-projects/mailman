@@ -40,7 +40,9 @@
                           (deliver recv event)
                           nil)
           router (c/router {::first [handle-first]
-                            ::second [handle-second]})
+                            ::second [handle-second]}
+                           {:executor (fn [i ctx]
+                                        ((:leave (last i)) ctx))})
           l (c/add-listener e {:handler router})]
       (is (some? (c/post-events e [{:type ::first}])))
       (is (= ::second (-> (deref recv 1000 :timeout) :type))))))
