@@ -42,7 +42,8 @@
                   [::second [{:handler (fn [ctx]
                                          (deliver recv (:event ctx))
                                          nil)}]]]
-          router (mc/make-router routes)
+          router (mc/make-router routes {:executor (fn [i ctx]
+                                                     ((:leave (last i)) ctx))})
           l (mc/add-listener broker {:handler router})]
       (is (some? (mc/post-events broker [{:type ::first}])))
       (is (= ::second (-> (deref recv 100 :timeout)
