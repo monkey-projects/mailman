@@ -1,15 +1,16 @@
 {:deps {com.monkeyprojects/mailman-core {:mvn/version "0.4.0-SNAPSHOT"}
-        manifold/manifold {:mvn/version "0.5.0"}}
+        org.clojure/core.async {:mvn/version "1.9.865"}}
 
  :aliases
  {:dev
-  {:extra-paths ["env/dev"]
+  {:extra-paths ["dev-resources"]
    :extra-deps {ch.qos.logback/logback-classic {:mvn/version "1.5.32"}}
    :override-deps {com.monkeyprojects/mailman-core {:local/root "../core"}}}
 
   :test
   ;; clj -X:test
-  {:extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1"}
+  {:extra-paths ["test"]
+   :extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1"}
                 ch.qos.logback/logback-classic {:mvn/version "1.5.32"}}
    :exec-fn monkey.test/all}
 
@@ -21,8 +22,8 @@
   ;; clj -X:jar
   {:extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1"}}
    :exec-fn monkey.build/jar
-   :exec-args {:jar "target/mailman-manifold.jar"
-               :lib com.monkeyprojects/mailman-manifold
+   :exec-args {:jar "target/mailman-core-async.jar"
+               :lib com.monkeyprojects/mailman-core-async
                :pom-data [[:licenses
                            [:license
                             [:name "GPL v3"]

@@ -298,6 +298,7 @@ Currently, *Mailman* provides these implementations for its protocols:
  - `manifold`, based on the excellent [manifold](https://github.com/clj-commons/manifold) async library.
  - `jms`, that builds upon the [monkey-jms](https://github.com/monkey-projects/monkey-jms) library to connect to a JMS broker for messaging.
  - `nats`, which uses [Monkey Projects Nats](https://github.com/monkey-projects/nats) to connect to a [NATS](https://nats.io) broker for messaging.  See [more details here](nats/README.md).
+ - `core-async`, using the more or less "standard" Clojure [core.async](https://clojure.github.io/core.async/) library.  This only works in-memory, similar to `manifold`.
 
 The [manifold lib](manifold) provides an in-memory broker, similar to the one provided in the
 core, but it's built upon Manifold streams.  Furthermore, it provides some functions
@@ -312,4 +313,4 @@ by default encoded using `edn`, but this can be overridden.
 
 [GPLv3.0 license](LICENSE)
 
-Copyright (c) 2025 by [Monkey Projects](https://www.monkey-projects.be)
+Copyright (c) 2025-2026 by [Monkey Projects](https://www.monkey-projects.be)
