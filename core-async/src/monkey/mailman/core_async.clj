@@ -9,6 +9,8 @@
              [core :as mmc]
              [utils :as u]]))
 
+(set! *warn-on-reflection* true)
+
 (declare start-broker)
 
 (deftype Listener [id handler listeners]
@@ -47,7 +49,7 @@
                       (log/warn "Registered listener using deprecated param, use {:handler l} instead: " l)
                       l)
                     (:handler l))
-          w (->Listener (random-uuid) handler listeners)]
+          w ^Listener (->Listener (random-uuid) handler listeners)]
       (when (empty? @listeners)
         (start-broker this))
       (swap! listeners assoc (.id w) w)
@@ -56,7 +58,7 @@
 (defn start-broker
   "Starts a go-loop that reads events from the broker channel and dispatches
    them to all registered listeners."
-  [broker]
+  [^CoreAsyncBroker broker]
   (ca/go-loop []
     (when-let [evt (ca/<! (.chan broker))]
       (u/invoke-and-repost evt broker (vals @(.listeners broker)))
@@ -64,14 +66,14 @@
 
 (defn stop-broker
   "Closes the broker channel, which terminates the go-loop."
-  [broker]
+  [^CoreAsyncBroker broker]
   (ca/close! (.chan broker)))
 
 (defn core-async-broker
   "Creates a new core.async broker with an optional buffer size (default: 10)."
-  [& {:keys [buf-size]
+  [& {:keys [channel buf-size]
       :or {buf-size 10}}]
-  (->CoreAsyncBroker (ca/chan buf-size) (atom {})))
+  (->CoreAsyncBroker (or channel (ca/chan buf-size)) (atom {})))
 
 (defn async-invoker
   "Routing invoker that dispatches each handler in its own go-block, collecting
@@ -82,3 +84,8 @@
                                  (ca/go (h evt)))
                                handlers))]
     (ca/into [] results)))
+
+(defn get-channel
+  "Retrieves the channel configured on the broker"
+  [^CoreAsyncBroker m]
+  (.chan m))
