@@ -58,7 +58,19 @@
           l (mc/add-listener broker {:handler router})]
       (is (some? (mc/post-events broker [{:type ::first}])))
       (is (= ::second (-> (deref recv 1000 :timeout)
-                          :type))))))
+                          :type)))))
+
+  (testing "can specify custom channel"
+    (let [ch (ca/chan)
+          broker (sut/core-async-broker :channel ch)
+          p (promise)
+          evt {:type ::test-event}]
+      (is (= ch (sut/get-channel broker)))
+      (is (some? (mc/add-listener broker {:handler (fn [evt]
+                                                     (deliver p evt)
+                                                     nil)})))
+      (is (some? (mc/post-events broker [evt])))
+      (is (= evt (deref p 100 ::timeout))))))
 
 (deftest async-invoker
   (testing "invokes each of the handlers async"

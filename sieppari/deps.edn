@@ -1,5 +1,5 @@
 {:deps {metosin/sieppari {:mvn/version "0.0.0-alpha13"}
-        com.monkeyprojects/mailman-core {:mvn/version "0.4.0-SNAPSHOT"}}
+        com.monkeyprojects/mailman-core {:mvn/version "0.4.0"}}
 
  :paths ["src"]
 
@@ -33,7 +33,7 @@
                             [:url "https://www.gnu.org/licenses/gpl-3.0.en.html#license-text"]]]]
                :scm
                {:url "https://github.com/monkey-projects/mailman"}
-               :version [[:env "LIB_VERSION"] "0.4.0-SNAPSHOT"]}}
+               :version [[:env "LIB_VERSION"] "0.4.1-SNAPSHOT"]}}
 
   :install
   {:exec-fn monkey.build/jar+install}
