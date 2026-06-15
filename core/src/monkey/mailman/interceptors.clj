@@ -33,9 +33,10 @@
     (valid? x) [x]
     :else nil))
 
-(defn sanitize-result [& {:keys [event?]
-                          :or {event? s/event?}}]
+(defn sanitize-result
   "Cleans up result so it only contains valid events"
+  [& {:keys [event?]
+      :or {event? s/event?}}]
   {:name ::sanitize-result
    :leave (fn [ctx]
             (update ctx :result sanitize event?))})

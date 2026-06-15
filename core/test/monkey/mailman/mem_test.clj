@@ -28,7 +28,10 @@
           (is (= evt (deref recv 1000 :timeout)))))
 
       (testing "can unregister"
-        (is (true? (c/unregister-listener l))))))
+        (is (true? (c/unregister-listener l))))
+
+      (testing "returns false when unregistering an already-unregistered listener"
+        (is (false? (c/unregister-listener l))))))
 
   (testing "re-posts events in listener return values"
     (let [e (sut/make-memory-broker)

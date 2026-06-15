@@ -26,25 +26,18 @@
   (apply swap! (.state state) update-in path f args))
 
 (defn get-or-add [state path f & args]
-  (or (get-path state path)
-      (-> (update-state state assoc-in path (apply f args))
-          (get-in path))))
+  (-> (swap! (.state state)
+             (fn [s]
+               (if (get-in s path)
+                 s
+                 (assoc-in s path (apply f args)))))
+      (get-in path)))
 
 ;;; Higher-level functions
 
 (defn get-consumer-ctx [state conn {:keys [stream consumer]}]
-  (let [ctx-path [:consumer-ctx stream consumer]]
-    (or (get-path state ctx-path)
-        (-> (update-state
-             state
-             (fn [s]
-               (let [js (or (:jetstream s)
-                            (js/make-jetstream conn))
-                     ctx (js/consumer-ctx js stream consumer)]
-                 (-> s
-                     (assoc :jetstream js)
-                     (assoc-in ctx-path ctx)))))
-            (get-in ctx-path)))))
+  (let [js (get-or-add state [:jetstream] js/make-jetstream conn)]
+    (get-or-add state [:consumer-ctx stream consumer] js/consumer-ctx js stream consumer)))
 
 (defn set-fetcher [state fetcher]
   (update-state state assoc :fetcher fetcher))
@@ -65,15 +58,6 @@
      (when fetcher
        (.close fetcher))
      (dissoc s :fetcher))))
-
-;; (defn register-subscription [state id s]
-;;   (update-state state assoc-in [:subscriptions id] s))
-
-;; (defn unregister-subscription [state id]
-;;   (when-let [s (get-path state [:subscriptions id])]
-;;     (nc/unsubscribe s)
-;;     (update-state state update :subscriptions dissoc id)
-;;     true))
 
 (defn- opts->sub-id [opts]
   (select-keys opts [:subject :queue :deserializer]))
@@ -129,7 +113,7 @@
   (select-keys opts [:stream :consumer]))
 
 (defn- cons-path [opts]
-  [:consumers (opts->sub-id opts)])
+  [:consumers (opts->cons-id opts)])
 
 (defn get-cons [state opts]
   (get-path state (cons-path opts)))

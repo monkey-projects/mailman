@@ -13,15 +13,6 @@
   (unregister-listener [this]
     (unregister-fn this)))
 
-(defn- post-results
-  "Posts back any events that are the result of a previous listener invocation"
-  [broker res]
-  (let [events (->> (map :result res)
-                    (flatten)
-                    (remove nil?))]
-    (when-not (empty? events)
-      (mc/post-events broker events))))
-
 (defn- maybe-start-thread! [e state]
   (when-not (:thread @state)
     (let [t (Thread. (fn []
@@ -34,9 +25,13 @@
       (swap! state assoc :thread t))))
 
 (defn- unregister [state l]
-  (->> (swap! state update :listeners (partial remove (partial = l)))
-       (filter (partial = l))
-       (empty?)))
+  (let [p? (->> @state
+                :listeners
+                (filter (partial = l))
+                (not-empty)
+                (some?))]
+    (swap! state update :listeners (partial remove (partial = l)))
+    p?))
 
 (defrecord MemoryBroker [queue state]
   mc/EventPoster

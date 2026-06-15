@@ -47,6 +47,10 @@
   (->handler [m]
     (map->Handler m))
 
+  clojure.lang.PersistentHashMap
+  (->handler [m]
+    (map->Handler m))
+
   Handler
   (->handler [h]
     h))
@@ -117,13 +121,17 @@
       (when-let [h (find-handlers matcher compiled evt)]
         (invoker h evt)))))
 
+(def ^:private pedestal-executor
+  (delay
+    (try
+      (some-> (requiring-resolve 'monkey.mailman.pedestal/execute)
+              (var-get))
+      (catch Exception _ nil))))
+
 (defn- get-executor [opts]
   (or (:executor opts)
       ;; Find the pedestal executor dynamically, for backwards compatibility
-      (try
-        (some-> (requiring-resolve 'monkey.mailman.pedestal/execute)
-                (var-get))
-        (catch Exception _ nil))
+      @pedestal-executor
       (fn [_ _]
         (throw (ex-info "No interceptor executor has been found.  Either specify one in the options using `:executor`, or include the fallback mailman pedestal lib."
                         opts)))))
