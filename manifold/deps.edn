@@ -1,16 +1,16 @@
-{:deps {com.monkeyprojects/mailman-core {:mvn/version "0.4.0"}
+{:deps {com.monkeyprojects/mailman-core {:mvn/version "0.4.1-SNAPSHOT"}
         manifold/manifold {:mvn/version "0.5.0"}}
 
  :aliases
  {:dev
   {:extra-paths ["env/dev"]
-   :extra-deps {ch.qos.logback/logback-classic {:mvn/version "1.5.32"}}
+   :extra-deps {ch.qos.logback/logback-classic {:mvn/version "1.6.3"}}
    :override-deps {com.monkeyprojects/mailman-core {:local/root "../core"}}}
 
   :test
   ;; clj -X:test
   {:extra-deps {com.monkeyprojects/build {:mvn/version "0.3.1"}
-                ch.qos.logback/logback-classic {:mvn/version "1.5.32"}}
+                ch.qos.logback/logback-classic {:mvn/version "1.6.3"}}
    :exec-fn monkey.test/all}
 
   :junit
