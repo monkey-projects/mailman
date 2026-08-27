@@ -33,7 +33,7 @@
     (swap! state update :listeners (partial remove (partial = l)))
     p?))
 
-(defrecord MemoryBroker [queue state]
+(defrecord MemoryBroker [^java.util.Queue queue state]
   mc/EventPoster
   (post-events [this events]
     (.addAll queue events)
