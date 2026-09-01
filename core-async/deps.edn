@@ -1,4 +1,4 @@
-{:deps {com.monkeyprojects/mailman-core {:mvn/version "0.4.2"}
+{:deps {com.monkeyprojects/mailman-core {:mvn/version "0.4.3-SNAPSHOT"}
         org.clojure/core.async {:mvn/version "1.9.865"}}
 
  :aliases

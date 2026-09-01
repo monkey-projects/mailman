@@ -9,7 +9,7 @@
     (let [e (sut/make-memory-broker)
           evt {:type ::test-evt}]
       (is (= [evt] (c/post-events e [evt])))
-      (is (= 1 (count (:queue e)))
+      (is (= 1 (count @(:queue e)))
           "event should be in the queue")
       (is (= evt (c/poll-next e)))))
 

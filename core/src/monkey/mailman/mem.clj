@@ -3,8 +3,7 @@
    and testing purposes."
   (:require [monkey.mailman
              [core :as mc]
-             [utils :as u]])
-  (:import [java.util.concurrent ConcurrentLinkedQueue]))
+             [utils :as u]]))
 
 (defrecord Listener [handler unregister-fn]
   mc/Listener
@@ -15,12 +14,13 @@
 
 (defn- maybe-start-thread! [e state]
   (when-not (:thread @state)
-    (let [t (Thread. (fn []
-                       ;; Runs a simple poll loop
-                       (while (not-empty (:listeners @state))
-                         (doseq [evt (mc/poll-events e nil)]
-                           (u/invoke-and-repost evt e (:listeners @state)))
-                         (Thread/sleep 100))))]
+    (let [t (doto (Thread. (fn []
+                             ;; Runs a simple poll loop
+                             (while (not-empty (:listeners @state))
+                               (doseq [evt (mc/poll-events e nil)]
+                                 (u/invoke-and-repost evt e (:listeners @state)))
+                               (Thread/sleep 100))))
+              (.setDaemon true))]
       (.start t)
       (swap! state assoc :thread t))))
 
@@ -33,20 +33,22 @@
     (swap! state update :listeners (partial remove (partial = l)))
     p?))
 
-(defrecord MemoryBroker [^java.util.Queue queue state]
+(defrecord MemoryBroker [queue state]
   mc/EventPoster
   (post-events [this events]
-    (.addAll queue events)
+    (swap! queue #(reduce conj % events))
     events)
 
   mc/EventReceiver
   (poll-events [this n]
     (loop [res []]
-      (if-let [evt (.poll queue)]
-        (let [v (conj res evt)]
-          (if (or (nil? n) (< (count v) n))
-            (recur v)
-            v))
+      (if-let [evt (peek @queue)]
+        (do
+          (swap! queue pop)
+          (let [v (conj res evt)]
+            (if (or (nil? n) (< (count v) n))
+              (recur v)
+              v)))
         res)))
 
   (add-listener [this {:keys [handler]}]
@@ -56,6 +58,7 @@
       l)))
 
 (defn make-memory-broker []
-  (->MemoryBroker (ConcurrentLinkedQueue.) (atom {})))
+  (->MemoryBroker (atom clojure.lang.PersistentQueue/EMPTY)
+                  (atom {})))
 
 (def ^:deprecated make-memory-events make-memory-broker)
